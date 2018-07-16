@@ -13,8 +13,8 @@ Cargo.lock
 .pull
 
 # phpMyAdmin files
-phpmyadmin/phpmyadmin.zip
-phpmyadmin/public_html
+appengine/phpmyadmin/phpmyadmin.zip
+appengine/phpmyadmin/public_html
 
 # Ignore MacOSX files
 .DS_Store
