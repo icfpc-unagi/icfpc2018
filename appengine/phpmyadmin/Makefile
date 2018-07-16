@@ -1,3 +1,7 @@
+usage:
+	@echo 'Usage: make (build|install|clean)'
+.PHONY: usage
+
 build: phpmyadmin.zip
 	-rm -rf public_html
 	unzip phpmyadmin.zip -x '__MACOSX/*' -d public_html
@@ -14,3 +18,8 @@ update:
 install: update
 	gcloud app deploy --project icfpc-phpmyadmin public_html/
 .PHONY: install
+
+clean:
+	-rm phpmyadmin.zip
+	-rm -rf public_html
+.PHONY: clean
