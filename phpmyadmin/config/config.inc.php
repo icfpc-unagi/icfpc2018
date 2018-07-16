@@ -16,9 +16,9 @@ $cfg['Servers'][$i]['port'] = '';
 $cfg['Servers'][$i]['socket'] = '';
 $cfg['Servers'][$i]['ssl'] = true;
 $cfg['Servers'][$i]['compress'] = true;
-$cfg['Servers'][$i]['auth_type'] = 'cookie';
-$cfg['Servers'][$i]['user'] = 'root';
-$cfg['Servers'][$i]['password'] = '';
+$cfg['Servers'][$i]['auth_type'] = 'config';
+$cfg['Servers'][$i]['user'] = 'unagi';
+$cfg['Servers'][$i]['password'] = 'ZRlrqvaw';
 
 /* End of servers configuration */
 
