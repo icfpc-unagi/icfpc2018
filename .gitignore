@@ -16,6 +16,8 @@ Cargo.lock
 appengine/phpmyadmin/phpmyadmin.zip
 appengine/phpmyadmin/public_html
 
+**/secret.yaml
+
 # Ignore MacOSX files
 .DS_Store
 **/.DS_Store
