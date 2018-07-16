@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+export UNAGI_PWD="$PWD"
+cd "$(dirname "${BASH_SOURCE}")"
+make -f 'unagi.mk' "$@"
