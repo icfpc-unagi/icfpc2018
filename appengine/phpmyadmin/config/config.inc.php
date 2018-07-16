@@ -18,7 +18,7 @@ $cfg['Servers'][$i]['ssl'] = true;
 $cfg['Servers'][$i]['compress'] = true;
 $cfg['Servers'][$i]['auth_type'] = 'config';
 $cfg['Servers'][$i]['user'] = 'unagi';
-$cfg['Servers'][$i]['password'] = 'ZRlrqvaw';
+$cfg['Servers'][$i]['password'] = getenv('UNAGI_PASSWORD');
 
 /* End of servers configuration */
 
@@ -27,4 +27,3 @@ $cfg['DefaultLang'] = 'ja';
 $cfg['ServerDefault'] = 1;
 $cfg['UploadDir'] = '';
 $cfg['SaveDir'] = '';
-?>

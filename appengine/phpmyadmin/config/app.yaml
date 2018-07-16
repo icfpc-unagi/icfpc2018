@@ -21,3 +21,6 @@ handlers:
 - url: /.*
   script: index.php
   login: admin
+
+includes:
+- secret.yaml

@@ -11,8 +11,14 @@ build: phpmyadmin.zip
 phpmyadmin.zip:
 	curl -o phpmyadmin.zip https://storage.googleapis.com/icfpc-phpmyadmin.appspot.com/phpmyadmin.zip
 
+secret:
+	@echo 'env_variables:' > public_html/secret.yaml
+	@echo "  UNAGI_PASSWORD: ${UNAGI_PASSWORD}" >> public_html/secret.yaml
+.PHONY: secret
+
 update:
 	cp -Ra config/* public_html/
+	make secret
 .PHONY: update
 
 install: update
