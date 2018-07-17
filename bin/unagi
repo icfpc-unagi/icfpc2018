@@ -1,5 +1,35 @@
 #!/usr/bin/env bash
 
-export UNAGI_PWD="$PWD"
-cd "$(dirname "${BASH_SOURCE}")"
-make -f 'unagi.mk' "$@"
+set -e -u
+
+directory="$(dirname "${BASH_SOURCE}")"
+if [ "${1:-}" == 'update' ] ||
+   ! find "${directory}/../.pull" -mmin 5 2>/dev/null; then
+	pushd "$(dirname "${BASH_SOURCE}")"
+	git pull
+	touch ../.pull
+	popd
+fi
+
+if [ "${1:-}" == 'update' ]; then exit; fi
+
+unagi="$(dirname "${BASH_SOURCE}")/../target/release/unagi"
+
+if [ "${1:-}" == 'clean' -o "${1:-}" == 'rebuild' ]; then
+	pushd "$(dirname "${BASH_SOURCE}")/.." >/dev/null
+	cargo clean
+	popd >/dev/null
+fi
+
+if [ "${1:-}" == 'clean' ]; then exit; fi
+
+if [ ! -x "${unagi}" ] || [ "${1:-}" == 'build' -o "${1:-}" == 'rebuild' ]; then
+	pushd "$(dirname "${BASH_SOURCE}")/.." >/dev/null
+	echo 'Building unagi command...' >&2
+	cargo build -p unagi --release --quiet
+	popd >/dev/null
+fi
+
+if [ "${1:-}" == 'build' -o "${1:-}" == 'rebuild' ]; then exit; fi
+
+"${unagi}" "$@"

@@ -16,5 +16,7 @@ fn main() {
             _ => continue,
         };
         subcommand.1(matches);
+        std::process::exit(0);
     }
+    println!("{}", matches.usage());
 }
