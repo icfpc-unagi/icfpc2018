@@ -10,7 +10,7 @@ directory="$(dirname "${BASH_SOURCE}")"
 unagi="$(dirname "${BASH_SOURCE}")/../target/release/unagi"
 
 if [ "${1:-}" == 'update' ] ||
-   ! find "${directory}/../.pull" -mmin 5 2>/dev/null; then
+   [ "$(find "${directory}/../.pull" -mmin -5 2>/dev/null)" == '' ] ; then
 	pushd "$(dirname "${BASH_SOURCE}")/.." >/dev/null
 	git pull >/dev/null
 	touch .pull
