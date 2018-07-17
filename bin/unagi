@@ -2,18 +2,26 @@
 
 set -e -u
 
+build() {
+	cargo build -p unagi --release --quiet
+}
+
 directory="$(dirname "${BASH_SOURCE}")"
+unagi="$(dirname "${BASH_SOURCE}")/../target/release/unagi"
+
 if [ "${1:-}" == 'update' ] ||
    ! find "${directory}/../.pull" -mmin 5 2>/dev/null; then
-	pushd "$(dirname "${BASH_SOURCE}")"
-	git pull
-	touch ../.pull
-	popd
+	pushd "$(dirname "${BASH_SOURCE}")/.." >/dev/null
+	git pull >/dev/null
+	touch .pull
+	if [ -x "${unagi}" ]; then
+		build
+	fi
+	popd >/dev/null
 fi
 
 if [ "${1:-}" == 'update' ]; then exit; fi
 
-unagi="$(dirname "${BASH_SOURCE}")/../target/release/unagi"
 
 if [ "${1:-}" == 'clean' -o "${1:-}" == 'rebuild' ]; then
 	pushd "$(dirname "${BASH_SOURCE}")/.." >/dev/null
@@ -23,13 +31,14 @@ fi
 
 if [ "${1:-}" == 'clean' ]; then exit; fi
 
+
 if [ ! -x "${unagi}" ] || [ "${1:-}" == 'build' -o "${1:-}" == 'rebuild' ]; then
 	pushd "$(dirname "${BASH_SOURCE}")/.." >/dev/null
-	echo 'Building unagi command...' >&2
-	cargo build -p unagi --release --quiet
+	build
 	popd >/dev/null
 fi
 
 if [ "${1:-}" == 'build' -o "${1:-}" == 'rebuild' ]; then exit; fi
+
 
 "${unagi}" "$@"
