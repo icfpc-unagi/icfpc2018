@@ -1,7 +1,7 @@
 [package]
 name = "tools"
 version = "0.1.0"
-authors = ["Kentaro Imajo <github@imoz.jp>"]
+authors = ["Unagi"]
 
 [dependencies]
 utils = { version = "0.1.0", path = "../utils" }
