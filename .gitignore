@@ -22,3 +22,7 @@ appengine/phpmyadmin/public_html
 # Ignore MacOSX files
 .DS_Store
 **/.DS_Store
+
+# SSH files
+ssh/unagi
+ssh/unagi.pem
