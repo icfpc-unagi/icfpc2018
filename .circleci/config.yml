@@ -2,9 +2,6 @@ version: 2
 
 jobs:
   build:
-    machine:
-      docker_layer_caching: true
-
     docker:
       - image: imos/icfpc2018:latest
 
