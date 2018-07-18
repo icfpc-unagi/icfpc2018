@@ -2,8 +2,11 @@ version: 2
 
 jobs:
   build:
+    machine:
+      docker_layer_caching: true
+
     docker:
-      - image: abronan/rust-circleci:latest
+      - image: imos/icfpc2018:latest
 
     environment:
       TZ: "/usr/share/zoneinfo/Asia/Tokyo"
