@@ -1,0 +1,14 @@
+#!/bin/bash
+
+source "$(dirname "${BASH_SOURCE}")"/imosh || exit 1
+
+if [ "$#" -ge 1 ]; then
+    func::explode path '.' "${1}"
+    shift
+fi
+
+project="${path[2]:-icfpc-dashboard}"
+zone="${path[1]:-asia-northeast1-b}"
+host="${path[0]:-master}"
+
+exec gcloud compute --project "${project}" ssh --zone "${zone}" "${host}" -- "$@"
