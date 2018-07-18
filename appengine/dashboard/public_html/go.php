@@ -12,6 +12,7 @@ $links = [
 	[['github', 'git'], 'https://github.com/imos/icfpc2018'],
 	[['issues', 'issue'], 'https://github.com/imos/icfpc2018/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc'],
 	[['phpmyadmin', 'db', 'sql', 'mysql'], 'https://icfpc-phpmyadmin.appspot.com/db_structure.php?server=1&db=unagi'],
+	[['ci', 'circleci', 'tap'], 'https://circleci.com/gh/imos/icfpc2018/tree/master'],
 ];
 
 $mappings = [];
