@@ -50,17 +50,31 @@ RUN curl https://bazel.build/bazel-release.pub.gpg | apt-key add -
 RUN apt update -qq && apt install -qqy bazel && \
     apt clean && rm -rf /var/lib/apt/lists/*
 
+# Create unagi user.
+RUN useradd \
+        --home-dir=/home/unagi \
+        --create-home \
+        --uid=10001 \
+        --user-group \
+        --shell=/bin/bash \
+        unagi
+RUN echo 'unagi ALL=(ALL:ALL) NOPASSWD: ALL' > /etc/sudoers.d/unagi
+
 # Unagi password.
 ARG UNAGI_PASSWORD
 RUN [ "${UNAGI_PASSWORD}" != '' ]
 RUN echo "export UNAGI_PASSWORD='${UNAGI_PASSWORD}'" > /etc/profile.d/99-unagi.sh
-RUN echo "export PATH=\"\$HOME/icfpc2018-master/bin:\$PATH\"" \
+RUN echo "export RUSTUP_HOME=/usr/local/rustup" >> /etc/profile.d/99-unagi.sh
+RUN echo "export CARGO_HOME=/usr/local/cargo" >> /etc/profile.d/99-unagi.sh
+RUN echo "export PATH=\"\$HOME/icfpc2018-master/bin:/usr/local/cargo/bin:\$PATH\"" \
     >> /etc/profile.d/99-unagi.sh
 RUN chmod +x /etc/profile.d/99-unagi.sh
 
-ADD ./unagi.pem /root/.ssh/id_rsa
+ADD ./data/unagi.pem /root/.ssh/id_rsa
 RUN chmod 600 /root/.ssh/id_rsa
-ADD ./unagi.pem /home/unagi/.ssh/id_rsa
+ADD ./data/unagi.pub /root/.ssh/authorized_keys
+ADD ./data/unagi.pub /home/unagi/.ssh/authorized_keys
+ADD --chown=unagi:unagi ./data/unagi.pem /home/unagi/.ssh/id_rsa
 RUN chmod 600 /home/unagi/.ssh/id_rsa
 
 CMD ["/bin/bash"]

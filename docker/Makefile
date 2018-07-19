@@ -2,13 +2,18 @@ usage:
 	@echo 'Usage: make (upload|build)'
 .PHONY: usage
 
-upload: unagi.pem
+upload: data/unagi.pem data/unagi.pub
 	rsync -e "../bin/gcloud-ssh" -a --delete . docker:docker
 .PHONY: upload
 
-unagi.pem: ../ssh/unagi.encrypted
+data/unagi.pem: ../ssh/unagi.encrypted
+	mkdir -p data
 	cd ../ssh && make unagi.pem
-	cp ../ssh/unagi.pem ./unagi.pem
+	cp ../ssh/unagi.pem ./data/unagi.pem
+
+data/unagi.pub: ../ssh/unagi.pub
+	mkdir -p data
+	cp ../ssh/unagi.pub ./data/unagi.pub
 
 build-%: %.docker
 	sudo docker build --file $*.docker \

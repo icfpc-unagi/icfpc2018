@@ -26,3 +26,6 @@ appengine/phpmyadmin/public_html
 # SSH files
 ssh/unagi
 **/unagi.pem
+
+# Docker data files.
+docker/data
