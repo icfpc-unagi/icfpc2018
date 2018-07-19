@@ -46,6 +46,8 @@ popd
 mkdir -p /home/ninetan/bin
 cp "$(dirname "${BASH_SOURCE}")/poll.sh" /home/ninetan/bin/poll
 chmod +x /home/ninetan/bin/poll
+cp "$(dirname "${BASH_SOURCE}")/ninetan-sync.sh" /home/ninetan/bin/ninetan-sync
+chmod +x /home/ninetan/bin/ninetan-sync
 
 ###############################################################################
 # Set up NFS
@@ -79,6 +81,7 @@ SERVICES=(
     ninetan-dropbox
     ninetan-poll
     ninetan-docker
+    ninetan-sync
 )
 for service in "${SERVICES[@]}"; do
     systemctl enable "${service}"
