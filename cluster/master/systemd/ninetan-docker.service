@@ -4,7 +4,7 @@ Requires=docker.service
 After=docker.service
 
 [Service]
-ExecStart=/usr/bin/docker run --rm --name docker -p 2200:22 unagi2018/master:master /usr/sbin/sshd -D
+ExecStart=/usr/bin/docker run --rm --name docker -p 2200:22 -v /efs/master/unagi:/home/unagi -v /home/unagi/dropbox:/home/unagi/dropbox -v /efs:/efs unagi2018/master:master /usr/sbin/sshd -D
 Restart=always
 
 [Install]
