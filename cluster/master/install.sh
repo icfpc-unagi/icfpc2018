@@ -3,7 +3,8 @@
 set -e -u -x
 
 apt update
-apt install -y docker.io
+apt install -y docker.io bindfs nfs-common
+
 if ! id unagi; then
     useradd \
             --home-dir=/home/unagi \
@@ -50,12 +51,11 @@ chmod +x /home/ninetan/bin/poll
 ###############################################################################
 
 mkdir -p /efs
-apt install nfs-common
 if [ ! -f /etc/fstab.orig ]; then
     cp /etc/fstab /etc/fstab.orig
 fi
-cat /etc/fstab.orig > /etc/fstab
-echo 'fs-32b65013.efs.ap-northeast-1.amazonaws.com:/ /efs nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport 0 0' >> /etc/fstab
+echo 'fs-32b65013.efs.ap-northeast-1.amazonaws.com:/ /efs nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport 0 0' > /etc/fstab.efs
+cat /etc/fstab.* > /etc/fstab
 mount -a
 
 ###############################################################################
@@ -97,3 +97,7 @@ if [ ! -d /home/ninetan/Dropbox ]; then
     popd
 fi
 
+echo '/home/ninetan/Dropbox/ICFPC2018 /home/unagi/dropbox fuse.bindfs nonempty,perms=0777,force-user=ninetan,force-group=ninetan,chown-ignore,chgrp-ignore,chmod-ignore 0 0
+' > /etc/fstab.dropbox
+cat /etc/fstab.* > /etc/fstab
+mount -a
