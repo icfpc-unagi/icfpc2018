@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+set -e -u
+
+cd "$(dirname "${BASH_SOURCE}")/.."
+git pull >/dev/null
+touch .pull
+rm ./target/release/unagi 2>/dev/null || true

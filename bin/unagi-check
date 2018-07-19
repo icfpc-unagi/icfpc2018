@@ -3,15 +3,6 @@
 set -e -u
 
 directory="$(dirname "${BASH_SOURCE}")"
-if [ "$(find "${directory}/../.pull" -mmin -5 2>/dev/null)" != '' ] ; then
-	exit
-fi
-
-pushd "${directory}/.." >/dev/null
-git pull >/dev/null
-touch .pull
-
-unagi="${directory}/../target/release/unagi"
-if [ -f "${unagi}" ]; then
-	rm "${unagi}"
+if [ "$(find "${directory}/../.pull" -mmin -5 2>/dev/null)" == '' ] ; then
+	exec -- "${directory}/unagi-update"
 fi
