@@ -16,6 +16,7 @@ $links = [
 	[['ec2'], 'https://ap-northeast-1.console.aws.amazon.com/ec2/v2/home?region=ap-northeast-1'],
 	[['rds'], 'https://ap-northeast-1.console.aws.amazon.com/rds/home?region=ap-northeast-1'],
 	[['efs'], 'https://ap-northeast-1.console.aws.amazon.com/efs/home?region=ap-northeast-1'],
+	[['dns'], 'https://www.value-domain.com/moddnsfree.php?action=moddns2&domainname=sx9.jp'],
 ];
 
 $mappings = [];
