@@ -3,7 +3,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: unagi2018/master:latest
+      - image: unagi2018/master:master
         auth:
           username: $DOCKERHUB_USER
           password: $DOCKERHUB_PASSWORD
