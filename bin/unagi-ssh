@@ -8,5 +8,9 @@ if [ ! -f "${ssh_directory}/unagi.pem" ]; then
     popd >/dev/null
 fi
 
+if [ "$#" -eq 0 ]; then
+	set -- master
+fi
+
 ssh -F "$(dirname "${BASH_SOURCE}")/unagi-ssh.config" \
     -i "${ssh_directory}/unagi.pem" "$@"
