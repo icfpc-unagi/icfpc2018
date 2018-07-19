@@ -26,6 +26,7 @@ if ! id ninetan; then
             ninetan
 fi
 
+chmod 755 /home/ninetan
 rm -rf /home/ninetan/.ssh || true
 mkdir -p /home/ninetan/.ssh
 cp "$(dirname "${BASH_SOURCE}")/../../ssh/unagi.pem" /home/ninetan/.ssh/id_rsa
@@ -62,7 +63,7 @@ mount -a
 # Set up Docker
 ###############################################################################
 
-if [ "$(docker info | grep unagi2018)" == '' ]; then
+if [ "$(sudo --login docker info | grep unagi2018)" == '' ]; then
     sudo --login docker login --username unagi2018
 fi
 
