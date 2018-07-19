@@ -16,6 +16,10 @@ if ! id unagi; then
 fi
 echo 'unagi ALL=(ALL:ALL) NOPASSWD: ALL' > /etc/sudoers.d/unagi
 
+mkdir -p /home/unagi/.cache
+chown unagi:unagi /home/unagi/.cache
+chmod 700 /home/unagi/.cache
+
 if ! id ninetan; then
     useradd \
             --home-dir=/home/ninetan \
