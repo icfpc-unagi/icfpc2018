@@ -1,16 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-ssh_directory="$(dirname "${BASH_SOURCE}")/../ssh"
+set -e -u
 
-if [ ! -f "${ssh_directory}/unagi.pem" ]; then
-    pushd "${ssh_directory}" >/dev/null
-    make unagi.pem
-    popd >/dev/null
-fi
-
-if [ "$#" -eq 0 ]; then
-	set -- master
-fi
-
-ssh -F "$(dirname "${BASH_SOURCE}")/unagi-ssh.config" \
-    -i "${ssh_directory}/unagi.pem" "$@"
+"$(dirname "${BASH_SOURCE}")/unagi-check"
+exec "$(dirname "${BASH_SOURCE}")/unagi-ssh.sh" "$@"
