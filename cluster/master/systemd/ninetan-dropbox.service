@@ -1,0 +1,13 @@
+[Unit]
+Description=Dropbox
+After=syslog.target network.target
+
+[Service]
+WorkingDirectory=/home/ninetan
+ExecStart=/home/ninetan/.dropbox-dist/dropboxd
+User=ninetan
+Group=ninetan
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,12 @@
+[Unit]
+Description=ninetan-docker
+Requires=docker.service
+After=docker.service
+
+[Service]
+ExecStartPre=/usr/bin/docker pull unagi2018/master:master
+ExecStart=/usr/bin/docker run --rm --name docker -p 2200:22 unagi2018/master:master /usr/sbin/sshd -D
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

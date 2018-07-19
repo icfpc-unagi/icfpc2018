@@ -1,0 +1,12 @@
+[Unit]
+Description=ninetan-poll
+After=syslog.target network.target
+
+[Service]
+ExecStart=/home/ninetan/bin/poll
+User=ninetan
+Group=ninetan
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
