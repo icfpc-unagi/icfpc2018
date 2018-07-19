@@ -13,6 +13,9 @@ $links = [
 	[['issues', 'issue'], 'https://github.com/imos/icfpc2018/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc'],
 	[['phpmyadmin', 'db', 'sql', 'mysql'], 'https://icfpc-phpmyadmin.appspot.com/db_structure.php?server=1&db=unagi'],
 	[['ci', 'circleci', 'tap'], 'https://circleci.com/gh/imos/icfpc2018/tree/master'],
+	[['ec2'], 'https://ap-northeast-1.console.aws.amazon.com/ec2/v2/home?region=ap-northeast-1'],
+	[['rds'], 'https://ap-northeast-1.console.aws.amazon.com/rds/home?region=ap-northeast-1'],
+	[['efs'], 'https://ap-northeast-1.console.aws.amazon.com/efs/home?region=ap-northeast-1'],
 ];
 
 $mappings = [];

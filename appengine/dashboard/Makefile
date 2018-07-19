@@ -7,7 +7,7 @@ secret:
 	@echo "  UNAGI_PASSWORD: ${UNAGI_PASSWORD}" >> public_html/secret.yaml
 .PHONY: secret
 
-install: secret
+install: secret test
 	gcloud app deploy --project icfpc-dashboard public_html/
 .PHONY: install
 
@@ -18,3 +18,7 @@ clean:
 debug:
 	cd public_html && php -S 0.0.0.0:8888 --php-ini php.ini
 .PHONY: debug
+
+test: secret
+	bash run-test.sh
+.PHONY: test
