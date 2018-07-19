@@ -20,3 +20,21 @@ build-%: %.docker
 	    --build-arg UNAGI_PASSWORD=$${UNAGI_PASSWORD} \
 	    -t unagi2018/master:$* .
 .PHONY: build-%
+
+build: build-master
+.PHONY: build
+
+sshd-%:
+	sudo docker run --init --name $* --interactive --tty --rm \
+		--publish 2200:22 unagi2018/master:$* /usr/sbin/sshd -D
+.PHONY: sshd-%
+
+sshd: sshd-master
+.PHONY: sshd
+
+push-%:
+	sudo docker push unagi2018/master:$*
+.PHONY: push-%
+
+push: push-master
+.PHONY: push
