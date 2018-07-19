@@ -20,6 +20,23 @@ mkdir -p /home/unagi/.cache
 chown unagi:unagi /home/unagi/.cache
 chmod 700 /home/unagi/.cache
 
+mkdir -p /home/unagi/master/.ssh
+cp "$(dirname "${BASH_SOURCE}")/profile" /home/unagi/master/.profile
+cp "$(dirname "${BASH_SOURCE}")/bashrc" /home/unagi/master/.bashrc
+chown unagi:unagi /home/unagi/master/{.bashrc,.profile}
+chown unagi:unagi /home/unagi/master
+cp "$(dirname "${BASH_SOURCE}")/../../ssh/unagi.pem" \
+    /home/unagi/master/.ssh/id_rsa
+cp "$(dirname "${BASH_SOURCE}")/../../ssh/unagi.pub" \
+    /home/unagi/master/.ssh/unagi.pub
+cat /home/unagi/master/.ssh/*.pub \
+    > /home/unagi/master/.ssh/authorized_keys
+chown -R unagi:unagi /home/unagi/master/.ssh
+chmod 755 /home/unagi/master
+chmod 755 /home/unagi/master/.ssh
+chmod 644 /home/unagi/master/.ssh/authorized_keys
+chmod 600 /home/unagi/master/.ssh/id_rsa
+
 if ! id ninetan; then
     useradd \
             --home-dir=/home/ninetan \
