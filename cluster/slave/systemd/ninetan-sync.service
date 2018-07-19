@@ -1,0 +1,10 @@
+[Unit]
+Description=ninetan-sync
+After=syslog.target network.target
+
+[Service]
+ExecStart=/home/ninetan/bin/ninetan-sync
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
