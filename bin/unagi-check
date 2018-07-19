@@ -3,17 +3,15 @@
 set -e -u
 
 directory="$(dirname "${BASH_SOURCE}")"
-unagi="$(dirname "${BASH_SOURCE}")/../target/release/unagi"
-
-
 if [ "$(find "${directory}/../.pull" -mmin -5 2>/dev/null)" != '' ] ; then
 	exit
 fi
 
-pushd "$(dirname "${BASH_SOURCE}")/.." >/dev/null
+pushd "${directory}/.." >/dev/null
 git pull >/dev/null
 touch .pull
 
+unagi="${directory}/../target/release/unagi"
 if [ -f "${unagi}" ]; then
 	rm "${unagi}"
 fi
