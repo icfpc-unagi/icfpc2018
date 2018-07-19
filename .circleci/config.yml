@@ -13,8 +13,6 @@ jobs:
 
     steps:
       - checkout
-      - restore_cache:
-          key: project-cache
       - run:
           name: Stable Build
           command: |
@@ -24,8 +22,3 @@ jobs:
       - run:
           name: Test
           command: cargo test
-      - save_cache:
-          key: project-cache
-          paths:
-            - "~/.cargo"
-            - "./target"
