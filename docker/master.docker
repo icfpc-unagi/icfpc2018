@@ -50,4 +50,17 @@ RUN curl https://bazel.build/bazel-release.pub.gpg | apt-key add -
 RUN apt update -qq && apt install -qqy bazel && \
     apt clean && rm -rf /var/lib/apt/lists/*
 
+# Unagi password.
+ARG UNAGI_PASSWORD
+RUN [ "${UNAGI_PASSWORD}" != '' ]
+RUN echo "export UNAGI_PASSWORD='${UNAGI_PASSWORD}'" > /etc/profile.d/99-unagi.sh
+RUN echo "export PATH=\"\$HOME/icfpc2018-master/bin:\$PATH\"" \
+    >> /etc/profile.d/99-unagi.sh
+RUN chmod +x /etc/profile.d/99-unagi.sh
+
+ADD ./unagi.pem /root/.ssh/id_rsa
+RUN chmod 600 /root/.ssh/id_rsa
+ADD ./unagi.pem /home/unagi/.ssh/id_rsa
+RUN chmod 600 /home/unagi/.ssh/id_rsa
+
 CMD ["/bin/bash"]

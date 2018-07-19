@@ -25,4 +25,4 @@ appengine/phpmyadmin/public_html
 
 # SSH files
 ssh/unagi
-ssh/unagi.pem
+**/unagi.pem
