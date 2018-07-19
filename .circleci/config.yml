@@ -21,4 +21,4 @@ jobs:
             cargo build
       - run:
           name: Test
-          command: cargo test
+          command: make test
