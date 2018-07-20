@@ -29,3 +29,6 @@ fi
 if [ "${UNAGI_DIRECTORY:-}" != '' ]; then
 	cd "${UNAGI_DIRECTORY}"
 fi
+
+export PATH="$HOME/icfpc2018-master/bin:$PATH"
+export UNAGI_PASSWORD="Z9fGmmBl"
