@@ -29,3 +29,4 @@ jobs:
           paths:
             - "~/.cargo"
             - "./target"
+            - "/usr/local/cargo/registry"
