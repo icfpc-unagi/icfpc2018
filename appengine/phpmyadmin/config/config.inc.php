@@ -5,6 +5,8 @@
  * Date: Mon, 16 Jul 2018 04:59:53 +0000
  */
 
+ob_start();
+
 /* Servers configuration */
 $i = 0;
 
@@ -27,3 +29,7 @@ $cfg['DefaultLang'] = 'ja';
 $cfg['ServerDefault'] = 1;
 $cfg['UploadDir'] = '';
 $cfg['SaveDir'] = '';
+
+$cfg['PmaNoRelation_DisableWarning'] = true;
+$cfg['ExecTimeLimit'] = 60;
+$cfg['CheckConfigurationPermissions'] = false;
