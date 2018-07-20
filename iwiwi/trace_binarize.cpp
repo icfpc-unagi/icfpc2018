@@ -63,7 +63,6 @@ struct NearCoordinates {
   }
 
   uint8_t ToBinary() {
-    cout << (x + 1) * 9 + (y + 1) * 3 + (z + 1) << endl;
     return (x + 1) * 9 + (y + 1) * 3 + (z + 1);
   }
 };
@@ -105,7 +104,6 @@ struct NCOnlyOperation : public Operation {
   virtual uint8_t GetSignature() = 0;
 
   virtual void Emit(ostream &os) {
-    cout << nc.x << " " << nc.y << " " << nc.z << endl;
     write_binary<uint8_t>(os, (nc.ToBinary() << 3) | GetSignature());
   }
 };
