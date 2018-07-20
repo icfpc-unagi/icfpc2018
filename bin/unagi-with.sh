@@ -2,6 +2,7 @@
 # unagi-with.
 
 source imosh || exit 1
+DEFINE_string name "${USER}" 'Directory name to upload.'
 DEFINE_bool --alias=v verbose false 'Enables verbose mode.'
 eval "${IMOSH_INIT}"
 
@@ -14,6 +15,14 @@ git_directory="$(cd "$(pwd)/$(git rev-parse --show-cdup)" && pwd)"
 func::substr relative_directory "${current_directory}" "${#git_directory}"
 
 func::getmypid PID
+
+upload() {
+    "$(dirname "${BASH_SOURCE}")/unagi-upload.sh" \
+        --name="${FLAGS_name}" \
+        --verbose="${FLAGS_verbose}"
+}
+
+upload
 
 "$(dirname "${BASH_SOURCE}")/unagi-watch.sh" \
     --alsologtostderr="${FLAGS_alsologtostderr}" \
@@ -28,10 +37,9 @@ while read line; do
         continue
     fi
     LOG INFO "Uploading..."
-    "$(dirname "${BASH_SOURCE}")/unagi-upload.sh" \
-        --verbose="${FLAGS_verbose}"
+    upload
     sleep 1
 done &
 
-export UNAGI_DIRECTORY="${USER}${relative_directory}"
+export UNAGI_DIRECTORY="${FLAGS_name}${relative_directory}"
 exec -- "$(dirname "${BASH_SOURCE}")/unagi-ssh" master -o SendEnv=UNAGI_DIRECTORY
