@@ -60,6 +60,10 @@ RUN chmod +x /etc/profile.d/99-bazel-complete.sh
 # Set locale to suppress an sshd warning.
 RUN echo 'LANG="en_US.UTF-8"' > /etc/default/locale
 
+# Install additional packages.
+RUN apt-get update && apt-get install -y libssl-dev && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
 # Create unagi user.
 RUN useradd \
         --home-dir=/home/unagi \
