@@ -1,0 +1,133 @@
+
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="/assets/css/style.css?v=26161e94c8318dbb57617166f0a4359adcb6229f" media="screen" type="text/css">
+    <!-- <link rel="stylesheet" href="/assets/css/print.css" media="print" type="text/css"> -->
+
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <![endif]-->
+
+    <!-- Begin Jekyll SEO tag v2.5.0 -->
+<title>View Model | ICFP Programming Contest 2018</title>
+<meta name="generator" content="Jekyll v3.7.3" />
+<meta property="og:title" content="View Model" />
+<meta property="og:locale" content="en_US" />
+<link rel="canonical" href="https://icfpcontest2018.github.io/view-model.html" />
+<meta property="og:url" content="https://icfpcontest2018.github.io/view-model.html" />
+<meta property="og:site_name" content="ICFP Programming Contest 2018" />
+<script type="application/ld+json">
+{"@type":"WebPage","url":"https://icfpcontest2018.github.io/view-model.html","headline":"View Model","@context":"http://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+
+  </head>
+
+  <body>
+    <header>
+      <div class="inner">
+        <a href="https://icfpcontest2018.github.io/index.html">
+          <h1>ICFP Programming Contest 2018</h1>
+        </a>
+        <!-- <h2>ICFP Programming Contest 2018 (website)</h2> -->
+        
+        
+      </div>
+    </header>
+
+
+    <div id="content-wrapper">
+      <div class="wide-inner clearfix">
+        <section id="main-content" style="width: 100%;">
+          <h1 id="view-model">View Model</h1>
+
+<form>
+
+<p>
+<label for="modelFileIn">Model:</label>
+<input type="file" accept=".mdl,.xmdl" id="modelFileIn" />
+<input style="display:none;" type="button" id="viewModel" value="View Model" />
+</p>
+
+</form>
+
+<hr />
+
+<pre id="stdout"></pre>
+
+<hr />
+
+<div id="glcanvas_container" style="position: relative;">
+  <canvas id="glcanvas" tabindex="0" />
+</div>
+
+<h2 id="controls">Controls</h2>
+
+<ul>
+  <li><code class="highlighter-rouge">r</code>: Reset rotation and limits</li>
+  <li><code class="highlighter-rouge">s</code>/<code class="highlighter-rouge">w</code>: rotate about X axis</li>
+  <li><code class="highlighter-rouge">a</code>/<code class="highlighter-rouge">d</code>: rotate about Y axis</li>
+  <li><code class="highlighter-rouge">g</code>: enable/disable limit guide visibility</li>
+  <li><code class="highlighter-rouge">v</code>/<code class="highlighter-rouge">b</code>: decrease/increase low X limit</li>
+  <li><code class="highlighter-rouge">n</code>/<code class="highlighter-rouge">m</code>: decrease/increase high X limit</li>
+  <li><code class="highlighter-rouge">h</code>/<code class="highlighter-rouge">j</code>: decrease/increase low Y limit</li>
+  <li><code class="highlighter-rouge">k</code>/<code class="highlighter-rouge">l</code>: decrease/increase high Y limit</li>
+  <li><code class="highlighter-rouge">u</code>/<code class="highlighter-rouge">i</code>: decrease/increase low Z limit</li>
+  <li><code class="highlighter-rouge">o</code>/<code class="highlighter-rouge">p</code>: decrease/increase high Z limit</li>
+</ul>
+
+<script src="/assets/js/three.min.js"></script>
+
+<script src="/assets/js/Detector.js"></script>
+
+<script src="/assets/js/stats.min.js"></script>
+
+<script src="/assets/js/visualizer.js"></script>
+
+<script>
+var vis;
+(function () {
+  if (! Detector.webgl) {
+    const glcanvasContainer = document.getElementById('glcanvas_container');
+    const glcanvas = document.getElementById('glcanvas');
+    glcanvasContainer.removeChild(glcanvas);
+    var warning = Detector.getWebGLErrorMessage();
+    glcanvasContainer.appendChild(warning);
+  } else {
+    vis = initVisualizer({stats: true, screenshot: true, controls: true});
+  }
+})();
+</script>
+
+<script src="/assets/js/load-file-utils.js"></script>
+
+<script>
+var modelBData = null;
+(function () {
+  mkLoadBDataFromFile
+  ('model',
+   function () { modelBData = null;
+                 document.getElementById('stdout').innerHTML = "";
+                 if (vis) { vis.setSize(8, 8, 8); }; },
+   function () { },
+   function () { document.getElementById('viewModel').click(); },
+   function(data) { modelBData = data; });
+})();
+</script>
+
+<script src="/assets/js/view-model.js"></script>
+
+
+        </section>
+      </div>
+    </div>
+
+    
+
+  </body>
+</html>
+
