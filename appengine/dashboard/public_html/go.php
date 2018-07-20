@@ -17,7 +17,19 @@ $links = [
 	[['rds'], 'https://ap-northeast-1.console.aws.amazon.com/rds/home?region=ap-northeast-1'],
 	[['efs'], 'https://ap-northeast-1.console.aws.amazon.com/efs/home?region=ap-northeast-1'],
 	[['dns'], 'https://www.value-domain.com/moddnsfree.php?action=moddns2&domainname=sx9.jp'],
+	[['gce', 'gce-dashboard', 'gcp'], 'https://console.cloud.google.com/compute?project=icfpc-dashboard'],
 ];
+
+foreach (['api', 'dashboard', 'phpmyadmin'] as $service) {
+	$links[] = [
+		["gae-$service"],
+		"https://console.cloud.google.com/appengine?project=icfpc-$service",
+	];
+	$links[] = [
+		["logging-$service", "log-$service"],
+		"https://console.cloud.google.com/logs/viewer?project=icfpc-$service",
+	];
+}
 
 $mappings = [];
 foreach ($links as $pair) {
