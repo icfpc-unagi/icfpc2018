@@ -30,7 +30,7 @@ keep_watching() {
         done
     fi &
     while :; do
-        echo 'optional'
+        echo 'optional' 2>/dev/null
         sleep 1
     done
 }
@@ -38,6 +38,7 @@ keep_watching() {
 last_timestamp=0
 watch_timeout="${FLAGS_watch_timeout}"
 keep_watching | while read line; do
+    echo 2>/dev/null
     timestamp="$(date "+%s")"
     if [ "${line}" == 'optional' ] &&
        (( last_timestamp + watch_timeout > timestamp )); then
@@ -50,4 +51,4 @@ keep_watching | while read line; do
     last_timestamp="$(date "+%s")"
     watch_timeout="${FLAGS_watch_timeout}"
     date '+%s'
-done
+done || true

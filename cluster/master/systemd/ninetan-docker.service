@@ -4,7 +4,7 @@ Requires=docker.service
 After=docker.service
 
 [Service]
-ExecStart=/usr/bin/docker run --rm --name docker -p 2200:22 -h master --privileged -v /efs/nfs:/nfs -v /home/unagi/master:/home/unagi -v /home/unagi/dropbox:/home/unagi/dropbox -v /efs:/efs -v /home/ninetan/github:/home/unagi/github:ro -v /home/ninetan/github:/github:ro -v /home/unagi/dropbox:/dropbox:ro unagi2018/master:master /usr/sbin/sshd -D
+ExecStart=/usr/bin/docker run --rm --name docker -p 2200:22 -h master --privileged -v /efs/nfs:/nfs -v /home/unagi/master:/home/unagi -v /home/unagi/dropbox:/home/unagi/dropbox -v /efs:/efs -v /home/ninetan/github:/home/unagi/github:ro -v /home/ninetan/github:/github:ro -v /home/unagi/dropbox:/dropbox:ro unagi2018/master:master /usr/sbin/sshd -D -o PermitUserEnvironment=yes -o AcceptEnv=UNAGI_DIRECTORY
 Restart=always
 
 [Install]

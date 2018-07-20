@@ -25,3 +25,7 @@ fi
 if [ -d "$HOME/.local/bin" ] ; then
     PATH="$HOME/.local/bin:$PATH"
 fi
+
+if [ "${UNAGI_DIRECTORY:-}" != '' ]; then
+	cd "${UNAGI_DIRECTORY}"
+fi
