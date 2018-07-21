@@ -48,6 +48,7 @@ fn main() {
 	}
 	let mut bfs = bfs::BFS::new(r);
 	let mut occupied = mat![0; r; r; r];
+	let mut cache = mat![0; r; r; r];
 	for tid in 1.. {
 		for b in &bots {
 			occupied[b.p] = tid;
@@ -93,14 +94,19 @@ fn main() {
 			}
 		}
 		// plan
+		let mut tid2 = tid * bots.len();
 		for b in &mut bots {
+			tid2 += 1;
 			match b.state {
 				State::Free => {
 					if let Some(cs) = bfs.bfs(
 						|p| filled[p] || occupied[p] == tid || plan[p] != !0,
-						vec![b.p],
+						&vec![b.p],
 						|p| {
-							p.x % 3 == 1 && p.z % 3 == 1 && true
+							if p.x % 3 != 1 || p.z % 3 != 1 || cache[p] == tid2 {
+								return false;
+							}
+							true
 						}) {
 					}
 				},
