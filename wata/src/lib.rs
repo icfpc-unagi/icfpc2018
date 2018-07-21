@@ -42,6 +42,8 @@ impl<T> SetMax for T where T: PartialOrd {
 }
 
 pub enum Command {
+	SMove(P),
+	LMove(P, P)
 }
 
 pub type V3<T> = Vec<Vec<Vec<T>>>;
@@ -125,6 +127,11 @@ macro_rules! impl_index {
 				type Output = $T;
 				fn index(&self, p: P) -> &$T {
 					&self[p.x][p.y][p.z]
+				}
+			}
+			impl IndexMut<P> for V3<$T> {
+				fn index_mut(&mut self, p: P) -> &mut $T {
+					&mut self[p.x][p.y][p.z]
 				}
 			}
 		)*
