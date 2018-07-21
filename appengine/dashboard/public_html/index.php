@@ -68,8 +68,11 @@ function to_rank($num) {
 		case 1: return '🥇 1st';
 		case 2: return '🥈 2nd';
 		case 3: return '🥉 3rd';
-		default: return $num . 'th';
 	}
+	if ($num % 10 == 1 && $num > 20) return $num . 'st';
+	if ($num % 10 == 2 && $num > 20) return $num . 'nd';
+	if ($num % 10 == 3 && $num > 20) return $num . 'rd';
+	return $num . 'th';
 }
 
 for ($i = 1; $i <= $num_ranks; $i++) {
