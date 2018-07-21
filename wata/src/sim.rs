@@ -18,6 +18,27 @@ impl Bot {
             seeds: (2..=20).collect(),
         }
     }
+
+    fn fission(&mut self, nd: P, m: usize) -> Bot {
+        let mut seeds_old = std::mem::replace(&mut self.seeds, BTreeSet::new()).into_iter();
+        let bid = seeds_old.next().unwrap();
+        // let seeds = seeds_old.take(m).collect();
+        let mut seeds = BTreeSet::new();
+        for _ in 0..m {
+            seeds.insert(seeds_old.next().unwrap());
+        }
+        self.seeds = seeds_old.collect();
+        Bot {
+            bid,
+            p: self.p + nd,
+            seeds,
+        }
+    }
+
+    fn fusion(&mut self, mut other: Bot) {
+        self.seeds.insert(other.bid);
+        self.seeds.append(&mut other.seeds);
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -46,6 +67,9 @@ impl SimState {
             match cmd {
                 SMove(d) => {bot.p += d}
                 LMove(d1, d2) => {bot.p += d1 + d2}
+                Fission(nd, m) => {
+                    self.bots.insert(bot.fission(nd, m));
+                }
                 _ => {}
             }
             self.bots.insert(bot);
