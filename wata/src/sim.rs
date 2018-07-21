@@ -1,6 +1,7 @@
 #![allow(unused)]
 use *;
 use Command::*;
+use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -63,7 +64,17 @@ impl SimState {
     fn step(&mut self, cmds: Vec<Command>) {
         let bots = std::mem::replace(&mut self.bots, BTreeSet::new());
         assert!(bots.len() == cmds.len());
+        let mut pbots = BTreeMap::new();
+        let mut sbots = BTreeMap::new();
         for (mut bot, cmd) in bots.into_iter().zip(cmds) {
+            if let FusionP(nd) = cmd {
+                pbots.insert((bot.p, bot.p + nd), bot);
+                continue;
+            }
+            if let FusionS(nd) = cmd {
+                sbots.insert((bot.p - nd, bot.p), bot);
+                continue;
+            }
             match cmd {
                 SMove(d) => {bot.p += d}
                 LMove(d1, d2) => {bot.p += d1 + d2}
@@ -73,6 +84,11 @@ impl SimState {
                 _ => {}
             }
             self.bots.insert(bot);
+        }
+        for (k, mut pbot) in pbots.into_iter() {
+            let sbot = sbots.remove(&k).unwrap();
+            pbot.fusion(sbot);
+            self.bots.insert(pbot);
         }
     }
 }

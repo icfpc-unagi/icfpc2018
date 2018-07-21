@@ -147,14 +147,29 @@ struct State {
         auto it = bots.find(i);
         if (it == bots.end()) continue;
         Nanobot& bot = it->second;
-        if (!volat.emplace(bot.pos).second) LOG(FATAL) << "Error: Interference";
+        if (!volat.emplace(bot.pos).second) {
+          LOG(ERROR) << "Interference " << bot.pos;
+          return false;
+        }
         int b = fgetc(fa);
-        if (b == EOF) LOG(FATAL) << "Unexpected EOF (command group)";
+        if (b == EOF) {
+          LOG(ERROR) << "Unexpected EOF (command group)";
+          return false;
+        }
         if (b == 0b11111111) {  // Halt
           VLOG(2) << "Halt";
-          if (bot.pos != kZero) LOG(FATAL) << "Halt at non-zero coordinate";
-          if (bots.size() != 1) LOG(FATAL) << "Halt with multiple bots";
-          if (harmonics) LOG(FATAL) << "Halt with High harmonics";
+          if (bot.pos != kZero) {
+            LOG(ERROR) << "Halt at non-zero coordinate";
+            return false;
+          }
+          if (bots.size() != 1) {
+            LOG(ERROR) << "Halt with multiple bots";
+            return false;
+          }
+          if (harmonics) {
+            LOG(ERROR) << "Halt with High harmonics";
+            return false;
+          }
           bots.clear();
         } else if (b == 0b11111110) {  // Wait
           VLOG(2) << "Wait";
@@ -163,9 +178,15 @@ struct State {
           harmonics = !harmonics;
         } else if ((b & 0b11001111) == 0b00000100) {  // SMove
           int llda = (b & 0b00110000) >> 4;
-          if (llda == 0) return "SMove bad axis encoding";
+          if (llda == 0) {
+            LOG(ERROR) << "SMove bad axis encoding";
+            return false;
+          }
           int b2 = fgetc(fa);
-          if (b2 == EOF) return "Unexpected EOF (SMove)";
+          if (b2 == EOF) {
+            LOG(ERROR) << "Unexpected EOF (SMove)";
+            return false;
+          }
           int lldi = (b2 & 0b00011111) - 15;
           VLOG(2) << "SMove "
                   << " xyz"[llda] << " " << lldi;
@@ -176,16 +197,28 @@ struct State {
           int lldlen = std::abs(lldi);
           for (int i = 0; i < lldlen; ++i) {
             a += lldsign;
-            if (matrix[bot.pos]) LOG(FATAL) << "SMove through Full voxel";
-            if (!volat.emplace(bot.pos).second) LOG(FATAL) << "Interference";
+            if (matrix[bot.pos]) {
+              LOG(ERROR) << "SMove through Full voxel " << bot.pos;
+              return false;
+            }
+            if (!volat.emplace(bot.pos).second) {
+              LOG(ERROR) << "Interference " << bot.pos;
+              return false;
+            }
           }
-          if (!check_range(a, r)) LOG(FATAL) << "Invalid coordinate (SMove)";
+          if (!check_range(a, r)) {
+            LOG(ERROR) << "Invalid coordinate (SMove)";
+            return false;
+          }
           energy_smove += 2 * lldlen;
         } else if ((b & 0b00001111) == 0b00001100) {  // LMove
           int sld1a = (b & 0b00110000) >> 4;
           int sld2a = (b /* & 0b11000000 */) >> 6;
           int b2 = fgetc(fa);
-          if (b2 == EOF) LOG(FATAL) << "Unexpected EOF (LMove)";
+          if (b2 == EOF) {
+            LOG(ERROR) << "Unexpected EOF (LMove)";
+            return false;
+          }
           int sld1i = (b2 & 0b00001111) - 5;
           int sld2i = ((b2 /* & 0b11110000 */) >> 4) - 5;
           VLOG(2) << "LMove "
@@ -203,16 +236,30 @@ struct State {
           int sld2len = std::abs(sld2i);
           for (int i = 0; i < sld1len; ++i) {
             a1 += sld1sign;
-            if (matrix[bot.pos]) LOG(FATAL) << "LMove through Full voxel";
-            if (!volat.emplace(bot.pos).second) LOG(FATAL) << "Interference";
+            if (matrix[bot.pos]) {
+              LOG(ERROR) << "LMove through Full voxel " << bot.pos;
+              return false;
+            }
+            if (!volat.emplace(bot.pos).second) {
+              LOG(ERROR) << "Interference " << bot.pos;
+              return false;
+            }
           }
           for (int i = 0; i < sld2len; ++i) {
             a2 += sld2sign;
-            if (matrix[bot.pos]) LOG(FATAL) << "LMove through Full voxel";
-            if (!volat.emplace(bot.pos).second) LOG(FATAL) << "Interference";
+            if (matrix[bot.pos]) {
+              LOG(ERROR) << "LMove through Full voxel " << bot.pos;
+              return false;
+            }
+            if (!volat.emplace(bot.pos).second) {
+              LOG(ERROR) << "Interference " << bot.pos;
+              return false;
+            }
           }
-          if (!check_range(a1, r)) LOG(FATAL) << "Invalid coordinate (LMove)";
-          if (!check_range(a2, r)) LOG(FATAL) << "Invalid coordinate (LMove)";
+          if (!check_range(a1, r) || !check_range(a2, r)) {
+            LOG(ERROR) << "Invalid coordinate (LMove)";
+            return false;
+          }
           energy_lmove += 2 * (sld1len + 2 + sld2len);
         } else if ((b & 0b00000111) == 0b00000111) {  // FusionP
           int nd = (b /* & 0b11111000 */) >> 3;
@@ -225,17 +272,32 @@ struct State {
           VLOG(2) << "FusionS " << dc;
           fusionS.emplace(bot.pos + dc, i);
         } else if ((b & 0b00000111) == 0b00000101) {  // Fission
-          if (bot.seeds.empty()) LOG(FATAL) << "Fission with no seeds";
+          if (bot.seeds.empty()) {
+            LOG(ERROR) << "Fission with no seeds";
+            return false;
+          }
           int nd = (b /* & 0b11111000 */) >> 3;
           int m = fgetc(fa);
-          if (m == EOF) LOG(FATAL) << "Unexpected EOF (Fission)";
-          if (bot.seeds.size() < m + 1) LOG(FATAL) << "Fission lacking seeds";
+          if (m == EOF) {
+            LOG(ERROR) << "Unexpected EOF (Fission)";
+            return false;
+          }
+          if (bot.seeds.size() < m + 1) {
+            LOG(ERROR) << "Fission lacking seeds";
+            return false;
+          }
           int j = bot.seeds[0];
           DCoord dc = near_diff(nd);
           Coord c = bot.pos + dc;
           VLOG(2) << "Fission " << dc << " " << m;
-          if (!c.is_valid(r)) LOG(FATAL) << "Invalid coordinate (Fission)";
-          if (!volat.emplace(c).second) LOG(FATAL) << "Interference";
+          if (!c.is_valid(r)) {
+            LOG(ERROR) << "Invalid coordinate (Fission)";
+            return false;
+          }
+          if (!volat.emplace(c).second) {
+            LOG(ERROR) << "Interference " << c;
+            return false;
+          }
           bots_activated.emplace_back(
               std::piecewise_construct, std::forward_as_tuple(j),
               std::forward_as_tuple(c, bot.seeds.begin() + 1,
@@ -247,8 +309,14 @@ struct State {
           DCoord dc = near_diff(nd);
           Coord c = bot.pos + dc;
           VLOG(2) << "Fill " << dc;
-          if (!c.is_valid(r)) LOG(FATAL) << "Invalid coordinate (Fill)";
-          if (!volat.emplace(c).second) LOG(FATAL) << "Interference";
+          if (!c.is_valid(r)) {
+            LOG(ERROR) << "Invalid coordinate (Fill)";
+            return false;
+          }
+          if (!volat.emplace(c).second) {
+            LOG(ERROR) << "Interference " << c;
+            return false;
+          }
           if (matrix[c]) {
             energy_fill += 6;
           } else {
@@ -256,18 +324,23 @@ struct State {
             energy_fill += 12;
           }
         } else {
-          LOG(ERROR) << "Unknown command at " << ftell(fa) - 1;
+          LOG(ERROR) << "Unknown command";
+          return false;
         }
         ++commands;
       }
       for (auto& p : fusionP) {
         Nanobot& primary = bots.find(p.first)->second;
         auto it = fusionS.find(primary.pos);
-        if (it == fusionS.end())
-          LOG(FATAL) << "FusionP with no matching FusionS";
+        if (it == fusionS.end()) {
+          LOG(ERROR) << "FusionP with no matching FusionS";
+          return false;
+        }
         Nanobot& secondary = bots.find(it->second)->second;
-        if (p.second != secondary.pos)
-          LOG(FATAL) << "FusionP with no matching FusionS";
+        if (p.second != secondary.pos) {
+          LOG(ERROR) << "FusionP with no matching FusionS";
+          return false;
+        }
         std::vector<uint8> merged(primary.seeds.size() +
                                   secondary.seeds.size());
         std::merge(primary.seeds.begin(), primary.seeds.end(),
@@ -278,7 +351,10 @@ struct State {
         // s.energy -= 24;
         fusionS.erase(it);
       }
-      if (!fusionS.empty()) LOG(FATAL) << "FusionS with no matching FusionP";
+      if (!fusionS.empty()) {
+        LOG(ERROR) << "FusionS with no matching FusionP";
+        return false;
+      }
       for (auto& bot : bots_activated) bots.emplace(std::move(bot));
       if (harmonics) {
         for (const Coord& u : uncon) matrix[u] = true;
@@ -295,7 +371,8 @@ struct State {
                 Coord v = u + d;
                 return matrix[v] || uncon.count(v);
               })) {
-            LOG(FATAL) << "Ungrounded Full voxel";
+            LOG(ERROR) << "Ungrounded Full voxel " << u;
+            return false;
           }
         }
       }
@@ -344,13 +421,13 @@ int main(int argc, char** argv) {
   printf("commands:%d\n", s.commands);
   printf("energy:%lld\n", s.energy());
 
+  if (!success) return 1;
+
   LOG_IF(WARNING, !model) << "No model check";
   if (model && s.matrix != *model) {
     LOG(ERROR) << "Constructed model unmatched";
     return 1;
   }
-
-  if (fa) fclose(fa);
 
   return 0;
 }

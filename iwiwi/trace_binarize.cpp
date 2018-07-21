@@ -59,6 +59,8 @@ struct NearCoordinates {
     a.x = stoi(tokens[token_offset + 0]);
     a.y = stoi(tokens[token_offset + 1]);
     a.z = stoi(tokens[token_offset + 2]);
+    CHECK(abs(a.x) + abs(a.y) + abs(a.z) <= 2);
+    CHECK(max({abs(a.x), abs(a.y), abs(a.z)}) == 1);
     return a;
   }
 
@@ -139,6 +141,7 @@ struct SMove : public Operation {
     SMove a;
     a.dir = Direction::Parse(tokens[1]);
     a.dis = stoi(tokens[2]);
+    CHECK(abs(a.dis) <= 15);
     return a;
   }
 
@@ -155,10 +158,15 @@ struct LMove : public Operation {
   static LMove Parse(const vector<string> &tokens) {
     CHECK(tokens.size() == 5);
     LMove a;
+
     a.dir1 = Direction::Parse(tokens[1]);
     a.dis1 = stoi(tokens[2]);
+    CHECK(abs(a.dis1) <= 5);
+
     a.dir2 = Direction::Parse(tokens[3]);
     a.dis2 = stoi(tokens[4]);
+    CHECK(abs(a.dis2) <= 5);
+
     return a;
   }
 

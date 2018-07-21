@@ -1,0 +1,11 @@
+#!/bin/bash
+
+source imosh || exit 1
+DEFINE_string p '' ''
+eval "${IMOSH_INIT}"
+
+if [ -z "$FLAGS_p" ]; then
+	echo "USAGE: sim_text <trace> -p *.mdl " >&2
+  exit 0
+fi
+trace_binarize /dev/stdout < "$1" | sim -a /dev/stdin -p "$FLAGS_p"
