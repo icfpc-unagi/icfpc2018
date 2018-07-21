@@ -20,6 +20,14 @@ impl Bot {
         }
     }
 
+    fn from_position(p: P) -> Bot {
+        Bot {
+            bid: 0,
+            p,
+            seeds: BTreeSet::new(),
+        }
+    }
+
     fn fission(&mut self, nd: P, m: usize) -> Bot {
         let mut seeds_old = std::mem::replace(&mut self.seeds, BTreeSet::new()).into_iter();
         let bid = seeds_old.next().unwrap();
@@ -43,7 +51,7 @@ impl Bot {
 }
 
 #[derive(Clone, Debug)]
-struct SimState {
+pub struct SimState {
     // energy: i64,
     // harmonics: bool,
     matrix: V3<bool>,
@@ -57,6 +65,19 @@ impl SimState {
         bots.insert(bot);
         SimState {
             matrix: mat![false; r; r; r],
+            bots,
+        }
+    }
+
+    pub fn from_positions(matrix: V3<bool>, positions: Vec<P>) -> SimState {
+        let mut bots = BTreeSet::new();
+        for (i, &pos) in positions.iter().enumerate() {
+            let mut bot = Bot::from_position(pos);
+            bot.bid = i;
+            bots.insert(bot);
+        }
+        SimState {
+            matrix,
             bots,
         }
     }

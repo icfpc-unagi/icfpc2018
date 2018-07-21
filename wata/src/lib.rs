@@ -274,3 +274,4 @@ pub mod bfs;
 pub mod command;
 pub use command::Command;
 pub mod sim;
+pub mod postproc;
