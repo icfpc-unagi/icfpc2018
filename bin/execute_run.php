@@ -25,34 +25,6 @@ if (is_null($run)) {
 	exit(0);
 }
 
-function FetchData($table, $column, $hash) {
-	$paths = ["/efs/data/$hash", "/tmp/data/$hash"];
-	foreach ($paths as $path) {
-		if (is_readable($path)) {
-			$data = file_get_contents($path);
-			if (sha1($data) == $hash) {
-				return $data;
-			}
-			@unlink($path);
-		}
-	}
-	$data = Database::SelectCell("
-		SELECT $column FROM $table WHERE {$column}_hash = {hash}",
-		['hash' => $hash]);
-	if (sha1($data) == $hash) {
-		foreach ($paths as $path) {
-			if (is_dir(dirname($path))) {
-				file_put_contents($path, $data);
-				return $data;
-			}
-		}
-		WARNING("Failed to save cache.");
-		return $data;
-	}
-	WARNING("Failed to fetch data: $hash from $table:$column");
-	return NULL;
-}
-
 INFO("Preparing files...");
 file_put_contents(
 	'input', FetchData('problems', 'problem_data', $run['problem_data_hash']));
@@ -74,7 +46,8 @@ Database::Command('
 		run_stdout = {run_stdout},
 		run_stderr = {run_stderr},
 		run_executed = NOW(),
-		run_queue = NULL
+		run_queue = NULL,
+		run_score_queue = NOW()
 	WHERE run_id = @run_id', [
 	'run_stdout' => file_get_contents('stdout'),
 	'run_stderr' => file_get_contents('stderr'),

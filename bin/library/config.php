@@ -41,3 +41,5 @@ function INFO($message) {
 function WARNING($message) {
   Logging("\033[0;31mW", $message);
 }
+
+require_once(dirname(__FILE__) . '/utils.php');
