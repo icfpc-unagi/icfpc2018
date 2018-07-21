@@ -189,7 +189,7 @@ impl BFS {
     }
 
     pub fn restore(&self, p: P) -> Vec<Command> {
-        let d: usize = (0..6).min_by_key(|&d| self.cost[p][d]).unwrap();
+        let d: usize = (0..7).min_by_key(|&d| self.cost[p][d]).unwrap();
         let mut s = SearchState { p, d };
         assert_ne!(self.cost[s], MAX_C); // To confirm the reachability
 

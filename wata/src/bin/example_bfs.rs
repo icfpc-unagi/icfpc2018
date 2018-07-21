@@ -39,6 +39,14 @@ fn main() {
     bfs.show();
     println!("{:?}", bfs.restore(P::new(2, 2, 2)));
 
+    println!("2,2,2 -> 2,2,2");
+    bfs.clear();
+    let ret = bfs.bfs(filled_func, &vec![P::new(2, 2, 2)], goal_func);
+    println!("{:?}", ret);
+    bfs.show();
+    println!("{:?}", bfs.restore(P::new(2, 2, 2)));
+
+    // Expected panic:
     // let ret = bfs.bfs(filled_func, &vec![P::new(0, 0, 0)], goal_func);
     // bfs.restore(P::new(1, 1, 1));
 }
