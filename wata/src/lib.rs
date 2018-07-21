@@ -229,6 +229,58 @@ macro_rules! impl_index {
 
 impl_index!(bool, usize);
 
+#[derive(Clone, Debug)]
+pub struct InitV3<T: Clone> {
+	version: u32,
+	init: T,
+	data: V3<(T, u32)>
+}
+
+impl<T: Clone> InitV3<T> {
+	pub fn new(v: T, r: usize) -> InitV3<T> {
+		InitV3 { version: 0, init: v.clone(), data: mat![(v, 0); r; r; r] }
+	}
+	pub fn init(&mut self) {
+		if self.version == u32::max_value() {
+			for v in &mut self.data {
+				for v in v {
+					for v in v {
+						v.1 = 0;
+					}
+				}
+			}
+			self.version = 1;
+		} else {
+			self.version += 1;
+		}
+	}
+}
+
+impl<T: Clone> Index<P> for InitV3<T> {
+	type Output = T;
+	#[inline]
+	fn index(&self, i: P) -> &T {
+		let e = &self.data[i.x as usize][i.y as usize][i.z as usize];
+		if e.1 == self.version {
+			&e.0
+		} else {
+			&self.init
+		}
+	}
+}
+
+impl<T: Clone> IndexMut<P> for InitV3<T> {
+	#[inline]
+	fn index_mut(&mut self, i: P) -> &mut T {
+		let e = &mut self.data[i.x as usize][i.y as usize][i.z as usize];
+		if e.1 != self.version {
+			e.1 = self.version;
+			e.0 = self.init.clone();
+		}
+		&mut e.0
+	}
+}
+
 pub const SEEDS: usize = 20;
 
 pub fn read(path: &str) -> Model {

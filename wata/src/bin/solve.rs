@@ -37,7 +37,7 @@ fn main() {
 	let target = model.filled;
 	let mut filled = mat![false; r; r; r];
 	let mut ground = mat![false; r; r; r];
-	let mut plan = mat![!0; r; r; r];
+	let mut reserved = mat![!0; r; r; r];
 	let mut bots = split();
 	for x in 0..r {
 		for z in 0..r {
@@ -60,7 +60,7 @@ fn main() {
 				State::Filling { dir } => {
 					let mut q = None;
 					for p in b.p.near(r) {
-						if p != b.p + dir && !filled[p] && ground[p] && plan[p] == b.bid {
+						if p != b.p + dir && !filled[p] && ground[p] && reserved[p] == b.bid {
 							q = Some(p);
 							break;
 						}
@@ -80,7 +80,7 @@ fn main() {
 								break;
 							}
 							for p in bp.near(r) {
-								if !filled[p] && plan[p] == b.bid {
+								if !filled[p] && reserved[p] == b.bid {
 									rem = true;
 									break 'lp;
 								}
@@ -100,7 +100,7 @@ fn main() {
 			match b.state {
 				State::Free => {
 					if let Some(cs) = bfs.bfs(
-						|p| filled[p] || occupied[p] == tid || plan[p] != !0,
+						|p| filled[p] || occupied[p] == tid || reserved[p] != !0,
 						&vec![b.p],
 						|p| {
 							if p.x % 3 != 1 || p.z % 3 != 1 || cache[p] == tid2 {
