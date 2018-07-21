@@ -61,7 +61,7 @@ foreach ($problems as $problem) {
 	$resolution = $problem['problem_resolution'];
 	$default = $standings[$problem['problem_id']][9000];
 	$default_score = sprintf('%.2e', $default['run_score']);
-	echo "<td style=\"padding:0\"><span style=\"display:inline-block; height: 96px; vertical-align: middle;\"><img src=\"/thumbnails/{$problem_name}_tgt.mdl.png\" width=96 height=96></span><span style=\"display:inline-block; vertical-align: middle; padding: 5px;\">{$problem_name}<br>R={$problem['problem_resolution']}<br>dfl=$default_score</span></td>";
+	echo "<td style=\"padding:0\"><span style=\"display:inline-block; height: 96px; vertical-align: middle;\"><img src=\"/thumbnails/{$problem_name}_tgt.mdl.png\" width=96 height=96></span><span style=\"display:inline-block; vertical-align: middle; padding: 5px;\"><a href=\"/problem.php?problem_id={$problem['problem_id']}\">{$problem_name}</a><br>R={$problem['problem_resolution']}<br>dfl=$default_score</span></td>";
 
 	$ranked_programs = array_values($standings[$problem['problem_id']]);
 	$best_score = $ranked_programs[0]['run_score'];
