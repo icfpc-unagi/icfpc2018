@@ -4,6 +4,7 @@
 #include <string>
 #include <tuple>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include "base/base.h"
 
@@ -114,10 +115,10 @@ struct State {
   }
   string execute(FILE* fa) {
     while (!bots.empty()) {
-      ++steps;
       std::vector<std::pair<int, Nanobot>> bots_activated;
       std::unordered_map<int, Coord> fusionP;
       std::unordered_map<Coord, int> fusionS;
+      std::unordered_set<Coord> volat;
       if (harmonics) {
         energy_global += 30 * r * r * r;
       } else {
@@ -127,8 +128,8 @@ struct State {
       for (int i = 0; i < 20; ++i) {
         auto it = bots.find(i);
         if (it == bots.end()) continue;
-        ++commands;
         Nanobot& bot = it->second;
+        if (!volat.emplace(bot.pos).second) return "Error: Interference";
         int b = fgetc(fa);
         if (b == EOF) return "Unexpected EOF (command group)";
         if (b == 0b11111111) {  // Halt
@@ -137,7 +138,7 @@ struct State {
           if (harmonics) return "Error: Halt with High harmonics";
           bots.clear();
           VLOG(2) << "Halt";
-        } else if (b == 0b11111110) {  // Waits
+        } else if (b == 0b11111110) {  // Wait
           // Do nothing.
           VLOG(2) << "Wait";
         } else if (b == 0b11111101) {  // Flip
@@ -150,9 +151,15 @@ struct State {
           if (b2 == EOF) return "Unexpected EOF (SMove)";
           int lldi = b2 & 0b00011111;
           int& a = bot.pos.axis(llda);
-          a += lldi - 15;
+          int lldsign = lldi - 15 < 0 ? -1 : 1;
+          int lldlen = std::abs(lldi - 15);
+          for (int i = 0; i < lldlen; ++i) {
+            a += lldsign;
+            if (matrix[bot.pos]) return "Error: SMove through Full voxel";
+            if (!volat.emplace(bot.pos).second) return "Error: Interference";
+          }
           if (!check_range(a, r)) return "Error: Invalid coordinate (SMove)";
-          energy_smove += 2 * std::abs(lldi - 15);
+          energy_smove += 2 * lldlen;
           VLOG(2) << "SMove " << llda << " " << lldi;
         } else if ((b & 0b00001111) == 0b00001100) {  // LMove
           int sld1a = (b & 0b00110000) >> 4;
@@ -163,11 +170,23 @@ struct State {
           int sld2i = (b2 /* & 0b11110000 */) >> 4;
           int& a1 = bot.pos.axis(sld1a);
           int& a2 = bot.pos.axis(sld2a);
-          a1 += sld1i - 5;
-          a2 += sld2i - 5;
+          int sld1sign = sld1i - 5 < 0 ? -1 : 1;
+          int sld1len = std::abs(sld1i - 5);
+          int sld2sign = sld2i - 5 < 0 ? -1 : 1;
+          int sld2len = std::abs(sld2i - 5);
+          for (int i = 0; i < sld1len; ++i) {
+            a1 += sld1sign;
+            if (matrix[bot.pos]) return "Error: LMove through Full voxel";
+            if (!volat.emplace(bot.pos).second) return "Error: Interference";
+          }
+          for (int i = 0; i < sld2len; ++i) {
+            a2 += sld2sign;
+            if (matrix[bot.pos]) return "Error: LMove through Full voxel";
+            if (!volat.emplace(bot.pos).second) return "Error: Interference";
+          }
           if (!check_range(a1, r)) return "Error: Invalid coordinate (LMove)";
           if (!check_range(a2, r)) return "Error: Invalid coordinate (LMove)";
-          energy_lmove += 2 * (std::abs(sld1i - 5) + 2 + std::abs(sld2i - 5));
+          energy_lmove += 2 * (sld1len + 2 + sld2len);
           VLOG(2) << "LMove "
                   << " xyz"[sld1a] << sld1i << " "
                   << " xyz"[sld2a] << sld2i;
@@ -189,6 +208,7 @@ struct State {
           int j = bot.seeds[0];
           Coord c = bot.pos + near_diff(nd);
           if (!c.is_valid(r)) return "Error: Invalid coordinate (Fission)";
+          if (!volat.emplace(c).second) return "Error: Interference";
           bots_activated.emplace_back(
               std::piecewise_construct, std::forward_as_tuple(j),
               std::forward_as_tuple(c, bot.seeds.begin() + 1,
@@ -200,6 +220,7 @@ struct State {
           int nd = (b /* & 0b11111000 */) >> 3;
           Coord c = bot.pos + near_diff(nd);
           if (!c.is_valid(r)) return "Error: Invalid coordinate (Fill)";
+          if (!volat.emplace(c).second) return "Error: Interference";
           if (matrix[c]) {
             energy_fill += 6;
           } else {
@@ -210,6 +231,7 @@ struct State {
         } else {
           LOG(ERROR) << "Unknown command at " << ftell(fa) - 1;
         }
+        ++commands;
       }
       for (auto& p : fusionP) {
         Nanobot& primary = bots.find(p.first)->second;
@@ -232,6 +254,7 @@ struct State {
       if (!fusionS.empty()) return "Error: FusionS with no matching FusionP";
       for (auto& bot : bots_activated) bots.emplace(std::move(bot));
       // TODO: check volatile coordinates
+      ++steps;
     }
     return "";
   }
