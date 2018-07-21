@@ -29,3 +29,5 @@ ssh/unagi
 
 # Docker data files.
 docker/data
+
+bazel-*

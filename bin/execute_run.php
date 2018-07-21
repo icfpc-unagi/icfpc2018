@@ -65,8 +65,7 @@ file_put_contents('wrapper', '
 ');
 
 INFO("Executing a run (run_id={$run['run_id']})...");
-$command = dirname(__FILE__) . '/timeout --alsologtostderr --timeout=30 bash ./wrapper';
-echo $command;
+$command = dirname(__FILE__) . '/timeout --timeout=30 bash ./wrapper';
 system($command);
 
 Database::Command('

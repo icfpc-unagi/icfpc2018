@@ -282,6 +282,9 @@ int main(int argc, char** argv) {
             << "\n   lmove energy : " << s.energy_lmove
             << "\n    fill energy : " << s.energy_fill
             << "\n \x1b[33m[ total energy : " << s.energy() << " ]\x1b[0m";
+  printf("time:%d\n", s.steps);
+  printf("commands:%d\n", s.commands);
+  printf("energy:%lld\n", s.energy());
   // TODO: check matrix
 
   if (fp) fclose(fp);

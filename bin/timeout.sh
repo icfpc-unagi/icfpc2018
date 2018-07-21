@@ -33,5 +33,4 @@ maybe_exit() {
 	done
 } &
 
-wait "${child_pid}"
-sub::exit
+wait
