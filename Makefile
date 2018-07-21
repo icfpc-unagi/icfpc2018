@@ -16,3 +16,10 @@ cargo-test:
 sim-test:
 	cd sim && make test
 .PHONY: sim-test
+
+install: iwiwi sim
+iwiwi:
+	make -C iwiwi
+sim:
+	make -C sim
+.PHONY: install iwiwi sim
