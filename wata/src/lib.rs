@@ -93,7 +93,7 @@ pub struct Model {
 	pub filled: V3<bool>
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct P {
 	pub x: i32,
 	pub y: i32,
@@ -140,6 +140,13 @@ impl<'a> Add for &'a P {
 	}
 }
 
+impl<'a> Sub for &'a P {
+	type Output = P;
+	fn sub(self, a: &P) -> P {
+		P::new(self.x - a.x, self.y - a.y, self.z - a.z)
+	}
+}
+
 macro_rules! impl_all {
 	($t:ident$(<$($g:ident),*>)*; $Op:ident:$op:ident:$Opa:ident:$opa:ident) => {
 		impl<$($($g),*)*> $Op for $t$(<$($g),*>)* where for<'b> &'b $t$(<$($g),*>)*: $Op<Output = $t$(<$($g),*>)*> {
@@ -165,6 +172,7 @@ macro_rules! impl_all {
 }
 
 impl_all!(P; Add:add:AddAssign:add_assign);
+impl_all!(P; Sub:sub:SubAssign:sub_assign);
 
 macro_rules! impl_index {
 	($($T: ty),*) => {
