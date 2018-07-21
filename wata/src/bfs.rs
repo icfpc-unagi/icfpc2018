@@ -89,6 +89,7 @@ pub struct BFS {
 	pub cost: V3<Vec<C>>,
     pub prev: V3<Vec<SearchState>>,
     pub que: BinaryHeap<HeapState>,
+    pub touched: Vec<SearchState>,
 }
 
 impl BFS {
@@ -98,6 +99,7 @@ impl BFS {
 			cost: mat![MAX_C; r; r; r; 7],
             prev: mat![DUMMY_SEARCH_STATE; r; r; r; 7],
             que: BinaryHeap::new(),
+            touched: vec![],
 		}
 	}
 
@@ -107,6 +109,10 @@ impl BFS {
         }
 
         if cost < self.cost[next] {
+            if self.cost[next] == MAX_C {  // First time to writing into that state?
+                self.touched.push(next);
+            }
+
             self.cost[next] = cost;
             self.prev[next] = prev;
             self.que.push(HeapState { c: cost, s: next });
@@ -180,6 +186,15 @@ impl BFS {
 
     pub fn get_cost(&self, p: P) -> i32 {
         return self.cost[p].iter().min().unwrap().0
+    }
+
+    pub fn clear(&mut self) {
+        for &s in self.touched.iter() {
+            self.cost[s] = MAX_C;
+            self.prev[s] = DUMMY_SEARCH_STATE;
+        }
+        self.que.clear();
+        self.touched.clear();
     }
 
     pub fn show(&self) {
