@@ -41,7 +41,7 @@ pub fn fusion_all(matrix: V3<bool>, positions: Vec<P>) -> Vec<Command> {
         }
 
         let mut all_orz = true;
-        for (mut pos, mut cmds) in positions.iter_mut().zip(cmdss.iter_mut()) {
+        for (pos, mut cmds) in positions.iter_mut().zip(cmdss.iter_mut()) {
             let cmd = cmds.pop_front().unwrap_or(Command::Wait);
             let mut orz = false;
             for (p, cmd_done, cmd_remain) in path(*pos, cmd) {
