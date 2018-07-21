@@ -63,11 +63,10 @@ impl ToString for Command {
 				"WAIT".to_owned()
 			},
 			Command::SMove(d) => {
-				format!("SMOVE {} {}", if d.x != 0 { "x "} else if d.y != 0 { "y" } else { "z" }, d.mlen())
+				format!("SMOVE {}", d.fmt_ld())
 			},
 			Command::LMove(d1, d2) => {
-				format!("LMOVE {} {} {} {}", if d1.x != 0 { "x "} else if d1.y != 0 { "y" } else { "z" }, d1.mlen(),
-											 if d2.x != 0 { "x "} else if d2.y != 0 { "y" } else { "z" }, d2.mlen())
+				format!("LMOVE {} {}", d1.fmt_ld(), d2.fmt_ld())
 			},
 			Command::FusionP(p) => {
 				format!("FUSIONP {} {} {}", p.x, p.y, p.z)
@@ -104,6 +103,19 @@ impl P {
 	pub fn mlen(&self) -> i32 {
 		self.x.abs() + self.y.abs() + self.z.abs()
 	}
+
+    pub fn fmt_ld(self) -> String {
+        if self.x != 0 {
+            return format!("x {}", self.x);
+        }
+        if self.y != 0 {
+            return format!("y {}", self.y);
+        }
+        if self.z != 0 {
+            return format!("z {}", self.z);
+        }
+        panic!();
+    }
 }
 
 pub const NEAR: [P; 18] = [
