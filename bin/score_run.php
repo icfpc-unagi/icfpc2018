@@ -28,9 +28,6 @@ INFO("Preparing files...");
 file_put_contents(
 	'problem', FetchData('problems', 'problem_data', $run['problem_data_hash']));
 file_put_contents('assembly', $run['run_stdout']);
-file_put_contents(
-	'program', FetchData('programs', 'program_data', $run['program_data_hash']));
-chmod('program', 0755);
 file_put_contents('command', 'sim -a assembly -p problem --logtostderr');
 file_put_contents('wrapper', '
 { time bash ./command | head -c 30000000 >stdout; } 2>&1 | head -c 1000000 >stderr
