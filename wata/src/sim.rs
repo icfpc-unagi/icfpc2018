@@ -5,9 +5,9 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-struct Bot {
+pub struct Bot {
     bid: usize,  // should be sorted by (unique) bid
-    p: P,
+    pub p: P,
     seeds: BTreeSet<usize>,
 }
 
@@ -54,8 +54,8 @@ impl Bot {
 pub struct SimState {
     // energy: i64,
     // harmonics: bool,
-    matrix: V3<bool>,
-    bots: BTreeSet<Bot>,
+    pub matrix: V3<bool>,
+    pub bots: BTreeSet<Bot>,
 }
 
 impl SimState {
