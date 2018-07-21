@@ -110,7 +110,7 @@ function initVisualizer(config) {
         floor.position.y = coordToPosY(0);
     }
 
-    var limitMaterial = new THREE.MeshPhongMaterial({color: 0xCCCCCC, side: THREE.DoubleSide});
+    var limitMaterial = new THREE.MeshPhongMaterial({color: 0xCCFFCC, side: THREE.DoubleSide});
     var limits = new THREE.Group();
     limits.visible = false;
     objs.add(limits);
@@ -300,7 +300,7 @@ function initVisualizer(config) {
         bots.remove(bot);
     };
 
-    var matrixMaterial = new THREE.MeshPhongMaterial({color: 0xFFFFFF, side: THREE.DoubleSide});
+    var matrixMaterial = new THREE.MeshPhongMaterial({color: 0xFFFFFF, side: THREE.DoubleSide, opacity: 0.5, transparent: true});
     var matrixGeometry = new THREE.Geometry();
     var matrix = new THREE.Mesh(matrixGeometry, matrixMaterial);
     matrix.castShadow = true;

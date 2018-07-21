@@ -61,7 +61,7 @@ foreach ($problems as $problem) {
 	$resolution = $problem['problem_resolution'];
 	$default = $standings[$problem['problem_id']][9000];
 	$default_score = sprintf('%.2e', $default['run_score']);
-	echo "<td style=\"padding:0\"><span style=\"display:inline-block; height: 96px; vertical-align: middle;\"><img src=\"/thumbnails/{$problem_name}_tgt.mdl.png\" width=96 height=96></span><span style=\"display:inline-block; vertical-align: middle; padding: 5px;\">{$problem_name}<br>R={$problem['problem_resolution']}<br>def=$default_score</span></td>";
+	echo "<td style=\"padding:0\"><span style=\"display:inline-block; height: 96px; vertical-align: middle;\"><img src=\"/thumbnails/{$problem_name}_tgt.mdl.png\" width=96 height=96></span><span style=\"display:inline-block; vertical-align: middle; padding: 5px;\">{$problem_name}<br>R={$problem['problem_resolution']}<br>dfl=$default_score</span></td>";
 
 	$ranked_programs = array_values($standings[$problem['problem_id']]);
 	$best_score = $ranked_programs[0]['run_score'];
@@ -81,8 +81,16 @@ foreach ($problems as $problem) {
 					($default_score - $my_score)) /
 				($default_score - $best_score));
 		}
-		$percent = sprintf('%.1f%%', $my_score * 100 / $default_score);
-    	echo "<td class=\"rank\">{$programs[$program['program_id']]['program_name']}<br>{$program['run_score']}<br>$percent<br>$eval_score</td>";
+		$d = $default_score / $my_score;
+		if ($d < 10) {
+			$d = sprintf('%.2f', $d);
+		} else if ($d < 100) {
+			$d = sprintf('%.1f', $d);
+		} else {
+			$d = round($d);
+		}
+		$percent = sprintf('%.4f%%', $my_score / $default_score * 100);
+    	echo "<td class=\"rank\">{$programs[$program['program_id']]['program_name']}<br>{$program['run_score']}<br>=dfl/$d<br>$eval_score</td>";
 	}
     // $count = 0;
     // foreach ($standings[$problem['problem_id']] as $program) {
