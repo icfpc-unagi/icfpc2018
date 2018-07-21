@@ -40,7 +40,8 @@ pub fn fusion_all(matrix: V3<bool>, positions: Vec<P>) -> Vec<Command> {
             occupied[pos] = true;
         }
 
-        let mut all_orz = true;
+        let mut all_wait = true;
+        eprintln!("{:?}", positions);
         for (pos, mut cmds) in positions.iter_mut().zip(cmdss.iter_mut()) {
             let cmd = cmds.pop_front().unwrap_or(Command::Wait);
             let mut orz = false;
@@ -48,6 +49,7 @@ pub fn fusion_all(matrix: V3<bool>, positions: Vec<P>) -> Vec<Command> {
                 if occupied[p] {
                     cmds.push_front(cmd_remain);
                     return_cmds.push(cmd_done);
+                    all_wait &= cmd_done == Command::Wait;
                     orz = true;
                     break;
                 }
@@ -56,10 +58,10 @@ pub fn fusion_all(matrix: V3<bool>, positions: Vec<P>) -> Vec<Command> {
             }
             if !orz {
                 return_cmds.push(cmd);
-                all_orz = false;
+                all_wait &= cmd == Command::Wait;
             }
         }
-        if all_orz {
+        if all_wait {
             break;
         }
     }

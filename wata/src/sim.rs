@@ -59,7 +59,7 @@ pub struct SimState {
 }
 
 impl SimState {
-    fn new(r: usize) -> SimState {
+    pub fn new(r: usize) -> SimState {
         let bot = Bot::new();
         let mut bots = BTreeSet::new();
         bots.insert(bot);
@@ -82,7 +82,7 @@ impl SimState {
         }
     }
 
-    fn step(&mut self, cmds: Vec<Command>) {
+    pub fn step(&mut self, cmds: Vec<Command>) {
         let bots = std::mem::replace(&mut self.bots, BTreeSet::new());
         assert!(bots.len() == cmds.len());
         let mut pbots = BTreeMap::new();
