@@ -3,7 +3,8 @@ use *;
 use std::collections::*;
 
 
-fn fusion_all(matrix: V3<bool>, positions: Vec<P>) {
+fn fusion_all(matrix: V3<bool>, positions: Vec<P>) -> Vec<Command> {
+    let mut return_cmds = Vec::new();
     let r = matrix.len();
     let mut cmdss: Vec<VecDeque<Command>> = Vec::new();
     {
@@ -43,9 +44,10 @@ fn fusion_all(matrix: V3<bool>, positions: Vec<P>) {
         for (mut pos, mut cmds) in positions.iter_mut().zip(cmdss.iter_mut()) {
             let cmd = cmds.pop_front().unwrap_or(Command::Wait);
             let mut orz = false;
-            for (p, c) in path(*pos, cmd) {
+            for (p, cmd_done, cmd_remain) in path(*pos, cmd) {
                 if occupied[p] {
-                    cmds.push_front(cmd);
+                    cmds.push_front(cmd_remain);
+                    return_cmds.push(cmd_done);
                     orz = true;
                     break;
                 }
@@ -53,6 +55,7 @@ fn fusion_all(matrix: V3<bool>, positions: Vec<P>) {
                 *pos = p;
             }
             if !orz {
+                return_cmds.push(cmd);
                 all_orz = false;
             }
         }
@@ -60,33 +63,51 @@ fn fusion_all(matrix: V3<bool>, positions: Vec<P>) {
             break;
         }
     }
+    return_cmds
 }
 
 
-fn path(mut p: P, mut cmd: Command) -> Vec<(P, Command)> {
-    // (next_pos, current_cmd)
+fn path(mut p: P, mut cmd: Command) -> Vec<(P, Command, Command)> {
+    // (next_pos, cmd_done, cmd_remain)
     let mut ret = Vec::new();
+    let mut cmd_done = Command::Wait;
     while let Command::LMove(d1, d2) = cmd {
         let v = d1 / d1.mlen();
         p += v;
-        ret.push((p, cmd));
+        ret.push((p, cmd_done, cmd));
         let d1 = d1 - v;
         cmd = if d1.mlen() == 0 {
             Command::SMove(d2)
         } else {
             Command::LMove(d1, d2)
         };
+        cmd_done = cmd_push(cmd_done, v);
     }
     while let Command::SMove(d1) = cmd {
         let v = d1 / d1.mlen();
         p += v;
-        ret.push((p, cmd));
+        ret.push((p, cmd_done, cmd));
         let d1 = d1 - v;
         cmd = if d1.mlen() == 0 {
             Command::Wait
         } else {
             Command::SMove(d1)
         };
+        cmd_done = cmd_push(cmd_done, v);
     }
     ret
+}
+
+
+fn cmd_push(cmd: Command, d: P) -> Command {
+    match cmd {
+        Command::Wait => Command::SMove(d),
+        Command::SMove(d1) => if d == d1/d1.mlen() {
+            Command::SMove(d1 + d)
+        } else {
+            Command::LMove(d1, d)
+        },
+        Command::LMove(d1, d2) => Command::LMove(d1, d2 + d),
+        _ => panic!()
+    }
 }
