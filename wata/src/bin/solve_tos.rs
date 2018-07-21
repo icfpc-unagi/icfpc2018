@@ -350,4 +350,15 @@ fn main() {
 		}
 	}
 	eprintln!("remaining: {} ({}) / {}", rem, grounded, total);
+
+    if rem == 0 {
+        let mut positions = Vec::new();
+        for bot in bots.iter() {
+            positions.push(bot.p);
+        }
+        let cmds = postproc::fusion_all(filled, positions);
+        for cmd in cmds {
+            println!("{}", cmd.to_string());
+        }
+    }
 }
