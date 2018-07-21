@@ -194,7 +194,7 @@ struct Fission : Operation {
   }
 
   virtual void Emit(ostream &os) {
-    write_binary<uint8_t>(os, (nc.ToBinary() << 5) | 0b101);
+    write_binary<uint8_t>(os, (nc.ToBinary() << 3) | 0b101);
     write_binary<uint8_t>(os, m);
   }
 };
