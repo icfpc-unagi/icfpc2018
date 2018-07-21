@@ -136,6 +136,8 @@ impl BFS {
         starts: &Vec<P>,
         mut goal: H,
     ) -> Option<P> {
+        assert_eq!(self.touched.len(), 0); // To confirm that the workspace is clean
+
         // Direction 6 is a special state only for the initialization
         for &p in starts.iter() {
             self.enqueue(
@@ -189,6 +191,7 @@ impl BFS {
     pub fn restore(&self, p: P) -> Vec<Command> {
         let d: usize = (0..6).min_by_key(|&d| self.cost[p][d]).unwrap();
         let mut s = SearchState { p, d };
+        assert_ne!(self.cost[s], MAX_C); // To confirm the reachability
 
         let mut cmds = vec![];
 
