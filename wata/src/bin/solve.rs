@@ -31,7 +31,7 @@ fn split() -> Vec<Bot> {
 		for _ in 0..t {
 			println!("{}", Command::Wait.to_string());
 		}
-		println!("{}", Command::Fission(P::new(t + 1, 0, 0), 18 - t as usize).to_string());
+		println!("{}", Command::Fission(P::new(1, 0, 0), 18 - t as usize).to_string());
 	}
 	(0..20).map(|i| Bot { bid: i, p: P::new(i as i32, 0, 0), state: State::Free }).collect()
 }
@@ -56,9 +56,11 @@ fn main() {
 	let mut bfs = bfs::BFS::new(r);
 	let mut occupied = InitV3::new(false, r);
 	let mut cache = InitV3::new(false, r);
+	let mut ground2 = InitV3::new(false, r);
 	loop {
-		debug!(bots[4]);
 		occupied.init();
+		eprintln!("{:?}\n{:?}", bots[1], bots[11]);
+		eprintln!("{:?}\n{:?}", reserved_list[1], reserved_list[11]);
 		let mut halt = true;
 		for b in &mut bots {
 			occupied[b.p] = true;
@@ -95,7 +97,6 @@ fn main() {
 							reserved_list[b.bid].remove(&q);
 						}
 					} else if reserved_list[b.bid].is_empty() {
-						debug!(b);
 						b.state = State::Free;
 					} else {
 						if occupied[b.p + dir] {
@@ -117,7 +118,7 @@ fn main() {
 				State::Free => {
 					bfs.clear();
 					if let Some(q) = bfs.bfs(
-						|p| filled[p] || reserved[p] != !0,
+						|p| filled[p] || reserved[p] != !0 || (p != b.p && occupied[p]),
 						&vec![b.p],
 						|p| {
 							if p.x % 3 != 1 || p.z % 3 != 1 || cache[p] {
@@ -153,11 +154,24 @@ fn main() {
 						b.state = State::Moving { to: q, commands };
 						let mut p = q;
 						let dir = P::new(0, 1, 0);
+						ground2.init();
 						while p.is_valid(r) {
-							for q in p.near(r) {
-								if q != p + dir && !filled[q] && ground[q] && reserved[q] == !0 {
-									reserved[q] = b.bid;
-									reserved_list[b.bid].insert(q);
+							loop {
+								let mut ok = false;
+								for q in p.near(r) {
+									if q != p + dir && !filled[q] && (ground[q] || ground2[q]) && reserved[q] == !0 {
+										reserved[q] = b.bid;
+										reserved_list[b.bid].insert(q);
+										for w in q.adj(r) {
+											if target[w] && !ground2[w] {
+												ground2[w] = true;
+												ok = true;
+											}
+										}
+									}
+								}
+								if !ok {
+									break;
 								}
 							}
 							p += dir;
@@ -177,56 +191,17 @@ fn main() {
 			let mut finished = false;
 			match b.state {
 				State::Moving { to, ref mut commands } => {
-					let c = commands[0];
-					let mut ok = true;
-					match c {
-						Command::SMove(d) => {
-							let len = d.mlen();
-							let d = d / len;
-							for i in 1..=len {
-								let p = b.p + d * i;
-								if filled[p] {
-									orz = true;
-									break;
-								}
-								if occupied[p] {
-									ok = false;
-									break;
-								}
-							}
-							if orz || !ok {
-								moves.push((b.bid, Command::Wait));
-							} else {
-								moves.push((b.bid, Command::SMove(d * len)));
-								commands.remove(0);
-								if commands.len() == 0 {
-									finished = true;
-								}
+					if commands.len() == 0 {
+						orz = true;
+					} else {
+						let c = commands[0];
+						let mut ok = true;
+						match c {
+							Command::SMove(d) => {
+								let len = d.mlen();
+								let d = d / len;
 								for i in 1..=len {
 									let p = b.p + d * i;
-									occupied[p] = true;
-								}
-							}
-						},
-						Command::LMove(d1, d2) => {
-							let len1 = d1.mlen();
-							let d1 = d1 / len1;
-							let len2 = d2.mlen();
-							let d2 = d2 / len2;
-							for i in 1..=len1 {
-								let p = b.p + d1 * i;
-								if filled[p] {
-									orz = true;
-									break;
-								}
-								if occupied[p] {
-									ok = false;
-									break;
-								}
-							}
-							if ok && !orz {
-								for i in 1..=len2 {
-									let p = b.p + d1 * len1 + d2 * i;
 									if filled[p] {
 										orz = true;
 										break;
@@ -236,27 +211,73 @@ fn main() {
 										break;
 									}
 								}
-							}
-							if orz || !ok {
-								moves.push((b.bid, Command::Wait));
-							} else {
-								moves.push((b.bid, Command::LMove(d1 * len1, d2 * len2)));
-								commands.remove(0);
-								if commands.len() == 0 {
-									finished = true;
+								if orz || !ok {
+									moves.push((b.bid, Command::Wait));
+								} else {
+									moves.push((b.bid, Command::SMove(d * len)));
+									commands.remove(0);
+									if commands.len() == 0 {
+										finished = true;
+									}
+									for i in 1..=len {
+										let p = b.p + d * i;
+										occupied[p] = true;
+									}
 								}
+							},
+							Command::LMove(d1, d2) => {
+								let len1 = d1.mlen();
+								let d1 = d1 / len1;
+								let len2 = d2.mlen();
+								let d2 = d2 / len2;
 								for i in 1..=len1 {
 									let p = b.p + d1 * i;
-									occupied[p] = true;
+									if filled[p] {
+										orz = true;
+										break;
+									}
+									if occupied[p] {
+										ok = false;
+										break;
+									}
 								}
-								for i in 1..=len2 {
-									let p = b.p + d1 * len1 + d2 * i;
-									occupied[p] = true;
+								if ok && !orz {
+									for i in 1..=len2 {
+										let p = b.p + d1 * len1 + d2 * i;
+										if filled[p] {
+											orz = true;
+											break;
+										}
+										if occupied[p] {
+											ok = false;
+											break;
+										}
+									}
 								}
+								if orz || !ok {
+									moves.push((b.bid, Command::Wait));
+								} else {
+									moves.push((b.bid, Command::LMove(d1 * len1, d2 * len2)));
+									commands.remove(0);
+									if commands.len() == 0 {
+										finished = true;
+									}
+									for i in 1..=len1 {
+										let p = b.p + d1 * i;
+										occupied[p] = true;
+									}
+									for i in 1..=len2 {
+										let p = b.p + d1 * len1 + d2 * i;
+										occupied[p] = true;
+									}
+								}
+							},
+							_ => {
+								unreachable!();
 							}
-						},
-						_ => {
-							unreachable!();
+						}
+						if !ok {
+							orz = true;
 						}
 					}
 				},
@@ -277,6 +298,16 @@ fn main() {
 		// eprintln!("{:?}", moves);
 		moves.sort();
 		assert!(moves.len() == bots.len());
+		let mut allwait = true;
+		for (_, command) in &moves {
+			if let Command::Wait = command {
+			} else {
+				allwait = false;
+			}
+		}
+		if allwait {
+			break;
+		}
 		for (bid, command) in moves {
 			println!("{}", command.to_string());
 			match command {
@@ -301,14 +332,22 @@ fn main() {
 		}
 	}
 	let mut rem = 0;
+	let mut total = 0;
+	let mut grounded = 0;
 	for x in 0..r {
 		for y in 0..r {
 			for z in 0..r {
+				if target[x][y][z] {
+					total += 1;
+				}
 				if target[x][y][z] && !filled[x][y][z] {
 					rem += 1;
+					if ground[x][y][z] {
+						grounded += 1;
+					}
 				}
 			}
 		}
 	}
-	eprintln!("remaining: {}", rem);
+	eprintln!("remaining: {} ({}) / {}", rem, grounded, total);
 }

@@ -113,7 +113,7 @@ impl P {
 		let mut adj = vec![];
 		for d in &ADJ {
 			let q = self + d;
-			if d.is_valid(r) {
+			if q.is_valid(r) {
 				adj.push(q);
 			}
 		}
