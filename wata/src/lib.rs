@@ -41,9 +41,48 @@ impl<T> SetMax for T where T: PartialOrd {
 	}
 }
 
+#[derive(Copy, Clone, Debug)]
 pub enum Command {
+	Halt,
+	Wait,
 	SMove(P),
-	LMove(P, P)
+	LMove(P, P),
+	FusionP(P),
+	FusionS(P),
+	Fission(P, usize),
+	Fill(P),
+}
+
+impl ToString for Command {
+	fn to_string(&self) -> String {
+		match self {
+			Command::Halt => {
+				"HALT".to_owned()
+			},
+			Command::Wait => {
+				"WAIT".to_owned()
+			},
+			Command::SMove(d) => {
+				format!("SMOVE {} {}", if d.x != 0 { "x "} else if d.y != 0 { "y" } else { "z" }, d.mlen())
+			},
+			Command::LMove(d1, d2) => {
+				format!("LMOVE {} {} {} {}", if d1.x != 0 { "x "} else if d1.y != 0 { "y" } else { "z" }, d1.mlen(),
+											 if d2.x != 0 { "x "} else if d2.y != 0 { "y" } else { "z" }, d2.mlen())
+			},
+			Command::FusionP(p) => {
+				format!("FUSIONP {} {} {}", p.x, p.y, p.z)
+			},
+			Command::FusionS(p) => {
+				format!("FUSIONS {} {} {}", p.x, p.y, p.z)
+			},
+			Command::Fission(p, m) => {
+				format!("FISSION {} {} {} {}", p.x, p.y, p.z, m)
+			},
+			Command::Fill(p) => {
+				format!("FUSIONP {} {} {}", p.x, p.y, p.z)
+			},
+		}
+	}
 }
 
 pub type V3<T> = Vec<Vec<Vec<T>>>;
@@ -56,24 +95,31 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug)]
 pub struct P {
-	pub x: usize,
-	pub y: usize,
-	pub z: usize,
+	pub x: i32,
+	pub y: i32,
+	pub z: i32,
+}
+
+impl P {
+	pub fn mlen(&self) -> i32 {
+		self.x.abs() + self.y.abs() + self.z.abs()
+	}
 }
 
 pub const NEAR: [P; 18] = [
-	P { x: !0, y: !0, z: 0 }, P { x: !0, y: 0, z: !0 }, P { x: !0, y: 0, z: 0 }, P { x: !0, y: 0, z: 1 }, P { x: !0, y: 1, z: 0 },
-	P { x: 0, y: !0, z: !0 }, P { x: 0, y: !0, z: 0 }, P { x: 0, y: !0, z: 1 },
-	P { x: 0, y: 0, z: !0 }, P { x: 0, y: 0, z: 1 },
-	P { x: 0, y: 1, z: !0 }, P { x: 0, y: 1, z: 0 }, P { x: 0, y: 1, z: 1 },
-	P { x: 1, y: !0, z: 0 }, P { x: 1, y: 0, z: !0 }, P { x: 1, y: 0, z: 0 }, P { x: 1, y: 0, z: 1 }, P { x: 1, y: 1, z: 0 }];
+	P { x: -1, y: -1, z: 0 }, P { x: -1, y: 0, z: -1 }, P { x: -1, y: 0, z: 0 }, P { x: -1, y: 0, z: 1 }, P { x: -1, y: 1, z: 0 },
+	P { x: 0, y: -1, z: -1 }, P { x: 0, y: -1, z: 0 }, P { x: 0, y: -1, z: 1 },
+	P { x: 0, y: 0, z: -1 }, P { x: 0, y: 0, z: 1 },
+	P { x: 0, y: 1, z: -1 }, P { x: 0, y: 1, z: 0 }, P { x: 0, y: 1, z: 1 },
+	P { x: 1, y: -1, z: 0 }, P { x: 1, y: 0, z: -1 }, P { x: 1, y: 0, z: 0 }, P { x: 1, y: 0, z: 1 }, P { x: 1, y: 1, z: 0 }];
 
 impl P {
-	pub fn new(x: usize, y: usize, z: usize) -> P {
+	pub fn new(x: i32, y: i32, z: i32) -> P {
 		P { x, y, z }
 	}
 	pub fn is_valid(&self, r: usize) -> bool {
-		self.x < r && self.y < r && self.z < r
+		let r = r as i32;
+		0 <= self.x && self.x < r && 0 <= self.y && self.y < r && 0 <= self.z && self.z < r
 	}
 	pub fn near(&self, r: usize) -> Vec<P> {
 		let mut near = vec![];
@@ -90,7 +136,7 @@ impl P {
 impl<'a> Add for &'a P {
 	type Output = P;
 	fn add(self, a: &P) -> P {
-		P::new(self.x.wrapping_add(a.x), self.y.wrapping_add(a.y), self.z.wrapping_add(a.z))
+		P::new(self.x + a.x, self.y + a.y, self.z + a.z)
 	}
 }
 
@@ -126,12 +172,12 @@ macro_rules! impl_index {
 			impl Index<P> for V3<$T> {
 				type Output = $T;
 				fn index(&self, p: P) -> &$T {
-					&self[p.x][p.y][p.z]
+					&self[p.x as usize][p.y as usize][p.z as usize]
 				}
 			}
 			impl IndexMut<P> for V3<$T> {
 				fn index_mut(&mut self, p: P) -> &mut $T {
-					&mut self[p.x][p.y][p.z]
+					&mut self[p.x as usize][p.y as usize][p.z as usize]
 				}
 			}
 		)*
