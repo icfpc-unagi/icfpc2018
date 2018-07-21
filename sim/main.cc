@@ -9,6 +9,7 @@
 #include "base/base.h"
 
 DEFINE_string(p, "", "problem file (.mdl)");
+DEFINE_int32(r, 0, "R instead of problem; no model check");
 DEFINE_string(a, "", "assembly file (.nbt)");
 
 struct Coord {
@@ -46,6 +47,10 @@ typedef Coord DCoord;
 
 Coord operator+(const Coord& lhs, const DCoord& rhs) {
   return Coord{lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z};
+}
+
+ostream& operator<<(ostream& os, const Coord& c) {
+  return os << '<' << c.x << ',' << c.y << ',' << c.z << '>';
 }
 
 bool check_range(int v, int c) { return 0 <= v && v < c; }
@@ -133,23 +138,24 @@ struct State {
         int b = fgetc(fa);
         if (b == EOF) return "Unexpected EOF (command group)";
         if (b == 0b11111111) {  // Halt
+          VLOG(2) << "Halt";
           if (bot.pos != kZero) return "Error: Halt at non-zero coordinate";
           if (bots.size() != 1) return "Error: Halt with multiple bots";
           if (harmonics) return "Error: Halt with High harmonics";
           bots.clear();
-          VLOG(2) << "Halt";
         } else if (b == 0b11111110) {  // Wait
-          // Do nothing.
           VLOG(2) << "Wait";
         } else if (b == 0b11111101) {  // Flip
-          harmonics = !harmonics;
           VLOG(2) << "Flip";
+          harmonics = !harmonics;
         } else if ((b & 0b11001111) == 0b00000100) {  // SMove
           int llda = (b & 0b00110000) >> 4;
           if (llda == 0) return "SMove bad axis encoding";
           int b2 = fgetc(fa);
           if (b2 == EOF) return "Unexpected EOF (SMove)";
           int lldi = b2 & 0b00011111;
+          VLOG(2) << "SMove "
+                  << " xyz"[llda] << " " << lldi - 15;
           int& a = bot.pos.axis(llda);
           int lldsign = lldi - 15 < 0 ? -1 : 1;
           int lldlen = std::abs(lldi - 15);
@@ -160,7 +166,6 @@ struct State {
           }
           if (!check_range(a, r)) return "Error: Invalid coordinate (SMove)";
           energy_smove += 2 * lldlen;
-          VLOG(2) << "SMove " << llda << " " << lldi;
         } else if ((b & 0b00001111) == 0b00001100) {  // LMove
           int sld1a = (b & 0b00110000) >> 4;
           int sld2a = (b /* & 0b11000000 */) >> 6;
@@ -168,6 +173,9 @@ struct State {
           if (b2 == EOF) return "Unexpected EOF (LMove)";
           int sld1i = b2 & 0b00001111;
           int sld2i = (b2 /* & 0b11110000 */) >> 4;
+          VLOG(2) << "LMove "
+                  << " xyz"[sld1a] << " " << sld1i - 5 << " "
+                  << " xyz"[sld2a] << " " << sld2i - 5;
           int& a1 = bot.pos.axis(sld1a);
           int& a2 = bot.pos.axis(sld2a);
           int sld1sign = sld1i - 5 < 0 ? -1 : 1;
@@ -187,18 +195,16 @@ struct State {
           if (!check_range(a1, r)) return "Error: Invalid coordinate (LMove)";
           if (!check_range(a2, r)) return "Error: Invalid coordinate (LMove)";
           energy_lmove += 2 * (sld1len + 2 + sld2len);
-          VLOG(2) << "LMove "
-                  << " xyz"[sld1a] << sld1i << " "
-                  << " xyz"[sld2a] << sld2i;
         } else if ((b & 0b00000111) == 0b00000111) {  // FusionP
           int nd = (b /* & 0b11111000 */) >> 3;
-          fusionP.emplace(i, bot.pos + near_diff(nd));
-          VLOG(2) << "FusionP " << nd;
+          DCoord dc = near_diff(nd);
+          VLOG(2) << "FusionP " << dc;
+          fusionP.emplace(i, bot.pos + dc);
         } else if ((b & 0b00000111) == 0b00000110) {  // FusionS
           int nd = (b /* & 0b11111000 */) >> 3;
-          bot.pos + near_diff(nd);
-          fusionS.emplace(bot.pos + near_diff(nd), i);
-          VLOG(2) << "FusionS " << nd;
+          DCoord dc = near_diff(nd);
+          VLOG(2) << "FusionS " << dc;
+          fusionS.emplace(bot.pos + dc, i);
         } else if ((b & 0b00000111) == 0b00000101) {  // Fission
           if (bot.seeds.empty()) return "Error: Fission with no seeds";
           int nd = (b /* & 0b11111000 */) >> 3;
@@ -206,7 +212,9 @@ struct State {
           if (m == EOF) return "Unexpected EOF (Fission)";
           if (bot.seeds.size() < m + 1) return "Error: Fission lacking seeds";
           int j = bot.seeds[0];
-          Coord c = bot.pos + near_diff(nd);
+          DCoord dc = near_diff(nd);
+          Coord c = bot.pos + dc;
+          VLOG(2) << "Fission " << dc << " " << m;
           if (!c.is_valid(r)) return "Error: Invalid coordinate (Fission)";
           if (!volat.emplace(c).second) return "Error: Interference";
           bots_activated.emplace_back(
@@ -215,10 +223,11 @@ struct State {
                                     bot.seeds.begin() + 1 + m));
           bot.seeds.erase(bot.seeds.begin(), bot.seeds.begin() + 1 + m);
           // s.energy += 24;
-          VLOG(2) << "Fission " << nd << " " << m;
         } else if ((b & 0b00000111) == 0b00000011) {  // Fill
           int nd = (b /* & 0b11111000 */) >> 3;
-          Coord c = bot.pos + near_diff(nd);
+          DCoord dc = near_diff(nd);
+          Coord c = bot.pos + dc;
+          VLOG(2) << "Fill " << dc;
           if (!c.is_valid(r)) return "Error: Invalid coordinate (Fill)";
           if (!volat.emplace(c).second) return "Error: Interference";
           if (matrix[c]) {
@@ -227,7 +236,6 @@ struct State {
             matrix[c] = true;
             energy_fill += 12;
           }
-          VLOG(2) << "Fill " << nd;
         } else {
           LOG(ERROR) << "Unknown command at " << ftell(fa) - 1;
         }
@@ -262,13 +270,21 @@ struct State {
 
 int main(int argc, char** argv) {
   ParseCommandLineFlags(&argc, &argv);
-  FILE* fp = fopen(FLAGS_p.c_str(), "r");
-  LOG_IF(FATAL, fp == nullptr) << "Failed to read " << FLAGS_p;
-  FILE* fa = fopen(FLAGS_a.c_str(), "r");
-  LOG_IF(FATAL, fp == nullptr) << "Failed to read " << FLAGS_a;
+  LOG_IF(FATAL, FLAGS_a.empty() || FLAGS_p.empty() && FLAGS_r == 0)
+      << "Specify -a *.nbt -p *.mdl";
 
-  int r = fgetc(fp);
+  int r = FLAGS_r;
+  if (!FLAGS_p.empty()) {
+    FILE* fp = fopen(FLAGS_p.c_str(), "r");
+    LOG_IF(FATAL, fp == nullptr) << "Failed to read " << FLAGS_p;
+    r = fgetc(fp);
+    fclose(fp);
+  }
+
   // TODO: read model
+
+  FILE* fa = fopen(FLAGS_a.c_str(), "r");
+  LOG_IF(FATAL, fa == nullptr) << "Failed to read " << FLAGS_a;
 
   State s(r);
   string msg = s.execute(fa);
@@ -287,7 +303,6 @@ int main(int argc, char** argv) {
   printf("energy:%lld\n", s.energy());
   // TODO: check matrix
 
-  if (fp) fclose(fp);
   if (fa) fclose(fa);
 
   return msg.empty() ? 0 : 1;
