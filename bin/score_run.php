@@ -8,7 +8,7 @@ Database::Command('
 	UPDATE runs SET
 		run_id = (@run_id := run_id),
 		run_score_queue = NOW() + INTERVAL 10 SECOND
-	WHERE run_score IS NULL AND run_score_queue < NOW()
+	WHERE run_score_queue < NOW()
 	ORDER BY run_score_queue LIMIT 1');
 $run = Database::SelectRow('
 	SELECT
@@ -39,7 +39,7 @@ system($command);
 
 $stdout = file_get_contents('stdout');
 $energy = NULL;
-if (preg_match('%^energy:(\d+)%s', $stdout, $match)) {
+if (preg_match('%^energy:(\d+)$%Usim', $stdout, $match)) {
 	$energy = intval($match[1]);
 }
 

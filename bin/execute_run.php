@@ -31,7 +31,9 @@ file_put_contents(
 file_put_contents(
 	'program', FetchData('programs', 'program_data', $run['program_data_hash']));
 chmod('program', 0755);
-file_put_contents('command', $run['program_command']);
+file_put_contents('command',
+	'problem_name=' . escapeshellarg($run['problem_name']) . "\n" .
+	$run['program_command']);
 file_put_contents('wrapper', '
 { time bash ./command | head -c 30000000 >stdout; } 2>&1 | head -c 1000000 >stderr
 ');
