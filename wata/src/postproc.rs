@@ -63,6 +63,23 @@ fn fusion_all(matrix: V3<bool>, positions: Vec<P>) -> Vec<Command> {
             break;
         }
     }
+
+    let n = positions.len();
+    let mut sorted_pos = positions.clone();
+    sorted_pos.sort_by_key(|p| p.mlen());
+    for &pos in sorted_pos[1..n].iter().rev() {
+        eprintln!("{:?}", pos);
+        // these bid_* are not true but positions are sorted by true bid
+        let bid_s = positions.iter().position(|&p| p == pos).unwrap();
+        let bid_p = positions.iter().position(|&p| (p - pos).mlen() == 1).unwrap();
+        let pos_p = positions[bid_p];
+        let mut cmds = vec![Command::Wait; positions.len()];
+        cmds[bid_p] = Command::FusionP(pos - pos_p);
+        cmds[bid_s] = Command::FusionS(pos_p - pos);
+        return_cmds.append(&mut cmds);
+        positions.remove(bid_s);
+    }
+
     return_cmds
 }
 
