@@ -13,7 +13,7 @@ Database::Command('
 		(SELECT program_id, problem_id, MAX(run_score) AS run_score
 		 FROM runs GROUP BY program_id, problem_id) AS s
 	WHERE run_score IS NOT NULL
-	ORDER BY problem_id, run_score DESC');
+	ORDER BY problem_id, run_score ASC');
 
 $programs = [];
 foreach (Database::Select('
@@ -51,6 +51,7 @@ echo '</p>';
 foreach ($problems as $problem) {
 	$problem_name = problem_name($problem['problem_name']);
 	echo "<h3 id=\"problem-$problem_name\">Problem $problem_name</h3>\n";
+	echo "<center><img src=\"/thumbnails/{$problem_name}_tgt.mdl.png\" width=128 height=128></center>";
 	echo '
 <table style="width:700px">
     <thead>
@@ -60,7 +61,10 @@ foreach ($problems as $problem) {
     </thead>
     <tbody>';
 
+    $count = 0;
     foreach ($standings[$problem['problem_id']] as $program) {
+    	if ($count > 5) break;
+    	$count++;
     	echo "<tr>
             <td style=\"text-align:left\"><pre>{$programs[$program['program_id']]['program_name']}</pre></td>
             <td style=\"text-align:right\"><pre>{$program['run_score']}</pre></td>
