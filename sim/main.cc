@@ -1,8 +1,8 @@
 #include <array>
 #include <cstdio>
 #include <memory>
-#include <string_view>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <unordered_map>
 #include <unordered_set>
@@ -166,12 +166,14 @@ struct State {
           if (llda == 0) return "SMove bad axis encoding";
           int b2 = fgetc(fa);
           if (b2 == EOF) return "Unexpected EOF (SMove)";
-          int lldi = b2 & 0b00011111;
+          int lldi = (b2 & 0b00011111) - 15;
           VLOG(2) << "SMove "
-                  << " xyz"[llda] << " " << lldi - 15;
+                  << " xyz"[llda] << " " << lldi;
+          LOG_IF(FATAL, lldi == 0 || lldi < -15 || 15 < lldi)
+              << "Invalid long linear coordinate difference";
           int& a = bot.pos.axis(llda);
-          int lldsign = lldi - 15 < 0 ? -1 : 1;
-          int lldlen = std::abs(lldi - 15);
+          int lldsign = lldi < 0 ? -1 : 1;
+          int lldlen = std::abs(lldi);
           for (int i = 0; i < lldlen; ++i) {
             a += lldsign;
             if (matrix[bot.pos]) LOG(FATAL) << "SMove through Full voxel";
@@ -184,17 +186,21 @@ struct State {
           int sld2a = (b /* & 0b11000000 */) >> 6;
           int b2 = fgetc(fa);
           if (b2 == EOF) LOG(FATAL) << "Unexpected EOF (LMove)";
-          int sld1i = b2 & 0b00001111;
-          int sld2i = (b2 /* & 0b11110000 */) >> 4;
+          int sld1i = (b2 & 0b00001111) - 5;
+          int sld2i = ((b2 /* & 0b11110000 */) >> 4) - 5;
           VLOG(2) << "LMove "
-                  << " xyz"[sld1a] << " " << sld1i - 5 << " "
-                  << " xyz"[sld2a] << " " << sld2i - 5;
+                  << " xyz"[sld1a] << " " << sld1i << " "
+                  << " xyz"[sld2a] << " " << sld2i;
+          LOG_IF(FATAL, sld1i == 0 || sld1i < -5 || 5 < sld1i)
+              << "Invalid short linear coordinate difference";
+          LOG_IF(FATAL, sld2i == 0 || sld2i < -5 || 5 < sld2i)
+              << "Invalid short linear coordinate difference";
           int& a1 = bot.pos.axis(sld1a);
           int& a2 = bot.pos.axis(sld2a);
-          int sld1sign = sld1i - 5 < 0 ? -1 : 1;
-          int sld1len = std::abs(sld1i - 5);
-          int sld2sign = sld2i - 5 < 0 ? -1 : 1;
-          int sld2len = std::abs(sld2i - 5);
+          int sld1sign = sld1i < 0 ? -1 : 1;
+          int sld1len = std::abs(sld1i);
+          int sld2sign = sld2i < 0 ? -1 : 1;
+          int sld2len = std::abs(sld2i);
           for (int i = 0; i < sld1len; ++i) {
             a1 += sld1sign;
             if (matrix[bot.pos]) LOG(FATAL) << "LMove through Full voxel";
