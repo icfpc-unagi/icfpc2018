@@ -172,16 +172,26 @@ impl BFS {
             }
 
             // Straight: continue
-            if s.d != 6 && c.1 + 1 <= LIMIT_SMOVE {
-                self.enqueue(
-                    SearchState {
-                        p: s.p + DIR6[s.d],
-                        d: s.d,
-                    },
-                    C(c.0, c.1 + 1),
-                    prev,
-                    &mut filled,
-                );
+            if s.d != 6 {
+                let ss = SearchState {
+                    p: s.p + DIR6[s.d],
+                    d: s.d,
+                };
+                if c.1 + 1 <= LIMIT_SMOVE {
+                    self.enqueue(
+                        ss,
+                        C(c.0, c.1 + 1),
+                        prev,
+                        &mut filled,
+                    );
+                } else {  // straight as next step
+                    self.enqueue(
+                        ss,
+                        C(c.0 + 1, 1),
+                        s,
+                        &mut filled,
+                    );
+                }
             }
         }
 
