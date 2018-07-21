@@ -8,4 +8,6 @@ if [ -z "$FLAGS_p" ]; then
 	echo "USAGE: sim_text <trace> -p *.mdl " >&2
   exit 0
 fi
-trace_binarize /dev/stdout < "$1" | sim -a /dev/stdin -p "$FLAGS_p"
+in="$1"
+shift
+trace_binarize /dev/stdout < "$in" | sim -a /dev/stdin -p "$FLAGS_p" "$@"
