@@ -1,6 +1,6 @@
-use *;
 use std::io::BufRead;
 use std::str::FromStr;
+use *;
 
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd, Eq, Ord)]
 pub enum Command {
@@ -53,7 +53,7 @@ fn parse_nd(tokens: &[&str]) -> P {
 }
 
 impl std::str::FromStr for Command {
-    type Err = ();  // We don't use errors, immediate panic is preferred :)
+    type Err = (); // We don't use errors, immediate panic is preferred :)
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let tokens: Vec<&str> = s.split(' ').collect();
@@ -66,7 +66,7 @@ impl std::str::FromStr for Command {
             "SMOVE" => {
                 assert_eq!(tokens.len(), 3);
                 Command::SMove(parse_ld(&tokens[1..]))
-            },
+            }
             "LMOVE" => {
                 assert_eq!(tokens.len(), 5);
                 Command::LMove(parse_ld(&tokens[1..3]), parse_ld(&tokens[3..]))
@@ -81,9 +81,7 @@ impl std::str::FromStr for Command {
             }
             "FISSION" => {
                 assert_eq!(tokens.len(), 5);
-                Command::Fission(
-                    parse_nd(&tokens[1..4]),
-                    usize::from_str(tokens[4]).unwrap())
+                Command::Fission(parse_nd(&tokens[1..4]), usize::from_str(tokens[4]).unwrap())
             }
             "FILL" => {
                 assert_eq!(tokens.len(), 4);
