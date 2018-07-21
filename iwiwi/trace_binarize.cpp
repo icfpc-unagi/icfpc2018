@@ -60,7 +60,7 @@ struct NearCoordinates {
     a.y = stoi(tokens[token_offset + 1]);
     a.z = stoi(tokens[token_offset + 2]);
     CHECK(abs(a.x) + abs(a.y) + abs(a.z) <= 2);
-    CHECK(max({abs(a.x), abs(a.y), abs(a.z)}) == 1);
+    CHECK(max(max(abs(a.x), abs(a.y)), abs(a.z)) == 1);
     return a;
   }
 
