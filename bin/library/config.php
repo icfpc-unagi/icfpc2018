@@ -28,3 +28,16 @@ Database::Initialize(
 	'unagi', getenv('UNAGI_PASSWORD'));
 
 ini_set('memory_limit', '1G');
+
+function Logging($color, $message) {
+  fwrite(STDERR,
+         $color . date('Y-m-d H:i:s] ') . rtrim($message) . "\033[0m\n");
+}
+
+function INFO($message) {
+  Logging("\033[0;34mI", $message);
+}
+
+function WARNING($message) {
+  Logging("\033[0;31mW", $message);
+}
