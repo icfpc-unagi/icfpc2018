@@ -273,3 +273,4 @@ pub fn read(path: &str) -> Model {
 pub mod bfs;
 pub mod command;
 pub use command::Command;
+pub mod sim;
