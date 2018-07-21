@@ -14,7 +14,7 @@ pub enum Command {
 
 impl ToString for Command {
     fn to_string(&self) -> String {
-        match self {
+        match *self {
             Command::Halt => "HALT".to_owned(),
             Command::Wait => "WAIT".to_owned(),
             Command::SMove(d) => format!("SMOVE {}", d.fmt_ld()),
