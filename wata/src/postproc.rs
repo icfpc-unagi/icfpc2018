@@ -13,7 +13,7 @@ pub fn fusion_all(matrix: V3<bool>, positions: Vec<P>) -> Vec<Command> {
         for &pos in positions.iter() {
             let mut bfs = bfs::BFS::new(r);
             let ret = bfs.bfs(filled_func, &vec![pos], goal_func);
-            eprintln!("{:?}", ret);
+            eprintln!("{:?} -> {:?}", pos, ret);
             let cmds = bfs.restore(ret.unwrap());
             cmdss.push(cmds.into_iter().collect());
         }
@@ -81,6 +81,7 @@ pub fn fusion_all(matrix: V3<bool>, positions: Vec<P>) -> Vec<Command> {
         return_cmds.append(&mut cmds);
         positions.remove(bid_s);
     }
+    return_cmds.push(Command::Halt);
 
     return_cmds
 }
