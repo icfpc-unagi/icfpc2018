@@ -4,8 +4,11 @@ use std::ops::*;
 #[macro_export]
 macro_rules! debug {
 	($($v: expr),*) => {
-		$(let _ = write!(::std::io::stderr(), "{} = {:?} ", stringify!($v), $v);)*
-		let _ = writeln!(::std::io::stderr(), "@ {}:{}", file!(), line!());
+		{
+			use ::std::io::Write;
+			$(let _ = write!(::std::io::stderr(), "{} = {:?} ", stringify!($v), $v);)*
+			let _ = writeln!(::std::io::stderr(), "@ {}:{}", file!(), line!());
+		}
 	}
 }
 #[macro_export]
@@ -136,6 +139,13 @@ impl Mul<i32> for P {
 	type Output = P;
 	fn mul(self, a: i32) -> P {
 		P::new(self.x * a, self.y * a, self.z * a)
+	}
+}
+
+impl Div<i32> for P {
+	type Output = P;
+	fn div(self, a: i32) -> P {
+		P::new(self.x / a, self.y / a, self.z / a)
 	}
 }
 
