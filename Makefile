@@ -2,7 +2,7 @@ usage:
 	@echo 'Usage: make (test)'
 .PHONY: usage
 
-test: appengine-test cargo-test sim-test
+test: appengine-test cargo-test sim-test iwiwi-test
 .PHONY: test
 
 %-test:
