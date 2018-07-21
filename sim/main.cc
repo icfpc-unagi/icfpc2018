@@ -1,6 +1,7 @@
 #include <array>
-#include <bitset>
 #include <cstdio>
+#include <memory>
+#include <string_view>
 #include <string>
 #include <tuple>
 #include <unordered_map>
@@ -70,6 +71,15 @@ DCoord near_diff(int nd) {
 struct Matrix {
  public:
   Matrix(int r) : r_(r), m_(r * r * r, false) {}
+  template <class C>
+  Matrix(int r, const C& bytes) : r_(r), m_(r * r * r) {
+    for (int i = 0; i < bytes.size(); ++i) {
+      for (int j = 0; j < 8; ++j) {
+        if (i * 8 + j >= m_.size()) return;
+        m_[i * 8 + j] = bytes[i] >> j & 1;
+      }
+    }
+  }
   bool operator[](const Coord& c) const { return m_[index(c)]; }
   std::vector<bool>::reference operator[](const Coord& c) {
     return m_[index(c)];
@@ -78,7 +88,7 @@ struct Matrix {
   bool operator!=(const Matrix& rhs) const { return m_ != rhs.m_; }
 
  private:
-  size_t index(const Coord& c) const { return (c.z * r_ + c.y) * r_ + c.x; }
+  size_t index(const Coord& c) const { return (c.x * r_ + c.y) * r_ + c.z; }
 
   int r_;
   std::vector<bool> m_;
@@ -300,7 +310,12 @@ int main(int argc, char** argv) {
     FILE* fp = fopen(FLAGS_p.c_str(), "r");
     LOG_IF(FATAL, fp == nullptr) << "Failed to read " << FLAGS_p;
     r = fgetc(fp);
-    // TODO: read model
+    std::vector<uint8> buf((r * r * r + 7) / 8);
+    if (std::fread(buf.data(), buf.size(), buf.size(), fp) == 1) {
+      model = std::unique_ptr<Matrix>(new Matrix(r, buf));
+    } else {
+      LOG(ERROR) << "Failed to read " << FLAGS_p;
+    }
     fclose(fp);
   }
 
@@ -323,6 +338,7 @@ int main(int argc, char** argv) {
   printf("commands:%d\n", s.commands);
   printf("energy:%lld\n", s.energy());
 
+  LOG_IF(WARNING, !model) << "No model check";
   if (model && s.matrix != *model) {
     LOG(ERROR) << "Constructed model unmatched";
     return 1;
