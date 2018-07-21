@@ -98,6 +98,44 @@ for ($i = 1; $i <= $num_ranks; $i++) {
 }
 echo '</thead>';
 
+$total_rankings = [];
+$rank = 0;
+$my_rank = 'Unknown';
+foreach (Database::Select('SELECT program_id, SUM(eval_score) AS total_score FROM standing GROUP BY program_id ORDER BY total_score DESC') as $program) {
+	$rank++;
+	if ($program['program_id'] == $program_id) {
+		$my_rank = to_rank($rank);
+	}
+	$total_rankings[$program['program_id']] = $program;
+}
+
+echo '<tr><td>Total</td>';
+
+if ($program_id) {
+	echo '<td class="rank">' . $my_rank . '<br>' . $total_rankings[$program_id]['total_score'] . '</td>';
+}
+
+$total_rankings = array_values($total_rankings);
+for ($i = 0; $i < $num_ranks; $i++) {
+	$program = $total_rankings[$i];
+	$program += $programs[$program['program_id']];
+	echo '<td class="rank">';
+	if ($program['program_id'] == $program_id) {
+		echo '<b>';
+	} else {
+		echo '<a href="/?program_id=' . $program['program_id'] . '">';
+	}
+	echo $program['program_name'];
+	if ($program['program_id'] == $program_id) {
+		echo '</b>';
+	} else {
+		echo '</a>';
+	}
+	echo '<br>' . $program['total_score'] . '</td>';
+}
+
+echo '</tr>';
+
 foreach ($problems as $problem) {
 	echo '<tr>';
 	$problem_name = problem_name($problem['problem_name']);

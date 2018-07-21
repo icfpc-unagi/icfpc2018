@@ -7,7 +7,7 @@ $data = explode('<h2 id="by-team">', $data, 2)[1];
 
 list($teams, $data) = explode('</p>', $data, 2);
 
-preg_match_all('%#team-(\d+)">([^<]*)</a>%Usi', $teams, $matches, PREG_SET_ORDER);
+preg_match_all('%#team-(\d+)">[^<]*<span>([^<]*)</span>%Usi', $teams, $matches, PREG_SET_ORDER);
 $programs = [];
 foreach ($matches as $program) {
 	$programs[] = [
@@ -18,7 +18,7 @@ foreach ($matches as $program) {
 
 echo '<pre>';
 var_dump($programs);
-Database::Command('REPLACE INTO programs{values}', ['values' => $programs]);
+Database::Command('REPLACE INTO programs {values}', ['values' => $programs]);
 
 $problems = [];
 foreach (Database::Select('SELECT problem_id, problem_name FROM problems') as $problem) {
