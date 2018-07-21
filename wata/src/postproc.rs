@@ -6,6 +6,16 @@ use std::collections::*;
 pub fn fusion_all(matrix: V3<bool>, positions: Vec<P>) -> Vec<Command> {
     let mut return_cmds = Vec::new();
     let r = matrix.len();
+    eprintln!("{:?}", r);
+    for x in 0..r {
+        for y in 0..r {
+            for z in 0..r {
+                if x == 0 || x + 1 == r || y + 1 == r || z == 0 || z + 1 == r {
+                    assert!(!matrix[x][y][z]);
+                }
+            }
+        }
+    }
     let mut cmdss: Vec<VecDeque<Command>> = Vec::new();
     {
         let filled_func = |p: P| { matrix[p] };
@@ -14,6 +24,11 @@ pub fn fusion_all(matrix: V3<bool>, positions: Vec<P>) -> Vec<Command> {
             let mut bfs = bfs::BFS::new(r);
             let ret = bfs.bfs(filled_func, &vec![pos], goal_func);
             eprintln!("{:?} -> {:?}", pos, ret);
+            if let None = ret {
+                for &t in bfs.touched.iter() {
+                    eprintln!("{:?}", t);
+                }
+            }
             let cmds = bfs.restore(ret.unwrap());
             cmdss.push(cmds.into_iter().collect());
         }
