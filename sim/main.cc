@@ -153,7 +153,7 @@ struct State {
         }
         int b = fgetc(fa);
         if (b == EOF) {
-          LOG(ERROR) << "Unexpected EOF (command group)";
+          LOG(ERROR) << "Unexpected EOF in the middle";
           return false;
         }
         if (b == 0b11111111) {  // Halt
@@ -202,7 +202,7 @@ struct State {
               return false;
             }
             if (!volat.emplace(bot.pos).second) {
-              LOG(ERROR) << "Interference " << bot.pos;
+              LOG(ERROR) << "Interference " << bot.pos << " SMove vs ?";
               return false;
             }
           }
@@ -252,7 +252,7 @@ struct State {
               return false;
             }
             if (!volat.emplace(bot.pos).second) {
-              LOG(ERROR) << "Interference " << bot.pos;
+              LOG(ERROR) << "Interference " << bot.pos << " LMove vs ?";
               return false;
             }
           }
@@ -295,7 +295,7 @@ struct State {
             return false;
           }
           if (!volat.emplace(c).second) {
-            LOG(ERROR) << "Interference " << c;
+            LOG(ERROR) << "Interference " << c << " Fission vs ?";
             return false;
           }
           bots_activated.emplace_back(
@@ -314,7 +314,7 @@ struct State {
             return false;
           }
           if (!volat.emplace(c).second) {
-            LOG(ERROR) << "Interference " << c;
+            LOG(ERROR) << "Interference " << c << " Fill vs ?";
             return false;
           }
           if (matrix[c]) {
@@ -369,11 +369,12 @@ struct State {
           };
           if (std::none_of(k1N1.begin(), k1N1.end(), [&](const DCoord& d) {
                 Coord v = u + d;
-                return matrix[v] || uncon.count(v);
+                return v.y == 0 || matrix[v] || uncon.count(v);
               })) {
             LOG(ERROR) << "Ungrounded Full voxel " << u;
             return false;
           }
+          matrix[u] = true;
         }
       }
       ++steps;
