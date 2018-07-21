@@ -20,13 +20,31 @@ if ($program_id) {
 	echo '</ul>';
 }
 
-
 Database::Command('
 	CREATE TEMPORARY TABLE standing AS
-	SELECT program_id, problem_id, run_score
+	SELECT
+		program_id, problem_id, run_score, best_run_score, default_run_score,
+		(CASE WHEN best_run_score = default_run_score THEN
+			FLOOR(LOG2(problem_resolution)) * 1000
+		ELSE
+			FLOOR(
+				FLOOR(LOG2(problem_resolution)) * 1000 *
+				(default_run_score - run_score) /
+				(default_run_score - best_run_score))
+		END) AS eval_score
 	FROM
 		(SELECT program_id, problem_id, MAX(run_score) AS run_score
 		 FROM runs GROUP BY program_id, problem_id) AS s
+		    NATURAL JOIN
+		(SELECT problem_id, IFNULL(run_score, 0) AS default_run_score
+		 FROM runs NATURAL RIGHT JOIN problems
+		 WHERE program_id = 9000) AS default_run_scores
+		    NATURAL JOIN
+		(SELECT problem_id, MIN(run_score) AS best_run_score
+		 FROM runs NATURAL JOIN problems
+		 GROUP BY problem_id) AS best_run_scores
+		    NATURAL JOIN
+		problems
 	WHERE run_score IS NOT NULL
 	ORDER BY problem_id, run_score ASC');
 
@@ -118,14 +136,6 @@ foreach ($problems as $problem) {
 			continue;
 		}
 		$my_score = $program['run_score'];
-		if ($default_score == $best_score) {
-			$eval_score = floor(log($resolution) / log(2)) * 1000;
-		} else {
-			$eval_score = floor(
-				(floor(log($resolution) / log(2)) * 1000 *
-					($default_score - $my_score)) /
-				($default_score - $best_score));
-		}
 		$d = $default_score / $my_score;
 		if ($d < 10) {
 			$d = sprintf('%.2f', $d);
@@ -154,7 +164,7 @@ foreach ($problems as $problem) {
 		    }
 		    echo '<br>';
 	    }
-    	echo "{$program['run_score']}<br>=dfl/$d<br>$eval_score</td>";
+    	echo "{$program['run_score']}<br>=dfl/$d<br>{$program['eval_score']}</td>";
 	}
     echo '</tr>';
 }
