@@ -41,7 +41,7 @@ impl<T> SetMax for T where T: PartialOrd {
 	}
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, PartialOrd, Eq, Ord)]
 pub enum Command {
 	Halt,
 	Wait,
@@ -79,7 +79,7 @@ impl ToString for Command {
 				format!("FISSION {} {} {} {}", p.x, p.y, p.z, m)
 			},
 			Command::Fill(p) => {
-				format!("FUSIONP {} {} {}", p.x, p.y, p.z)
+				format!("FILL {} {} {}", p.x, p.y, p.z)
 			},
 		}
 	}
@@ -111,8 +111,14 @@ pub const NEAR: [P; 18] = [
 	P { x: 0, y: -1, z: -1 }, P { x: 0, y: -1, z: 0 }, P { x: 0, y: -1, z: 1 },
 	P { x: 0, y: 0, z: -1 }, P { x: 0, y: 0, z: 1 },
 	P { x: 0, y: 1, z: -1 }, P { x: 0, y: 1, z: 0 }, P { x: 0, y: 1, z: 1 },
-	P { x: 1, y: -1, z: 0 }, P { x: 1, y: 0, z: -1 }, P { x: 1, y: 0, z: 0 }, P { x: 1, y: 0, z: 1 }, P { x: 1, y: 1, z: 0 }];
+	P { x: 1, y: -1, z: 0 }, P { x: 1, y: 0, z: -1 }, P { x: 1, y: 0, z: 0 }, P { x: 1, y: 0, z: 1 }, P { x: 1, y: 1, z: 0 }
+];
 
+pub const ADJ: [P; 6] = [
+	P { x: -1, y: 0, z: 0 }, P { x: 1, y: 0, z: 0 },
+	P { x: 0, y: -1, z: 0 }, P { x: 0, y: 1, z: 0 },
+	P { x: 0, y: 0, z: -1 }, P { x: 0, y: 0, z: 1 },
+];
 impl P {
 	pub fn new(x: i32, y: i32, z: i32) -> P {
 		P { x, y, z }
@@ -131,6 +137,16 @@ impl P {
 		}
 		near
 	}
+	pub fn adj(&self, r: usize) -> Vec<P> {
+		let mut adj = vec![];
+		for d in &ADJ {
+			let q = self + d;
+			if d.is_valid(r) {
+				adj.push(q);
+			}
+		}
+		adj
+	}
 }
 
 impl<'a> Add for &'a P {
@@ -144,6 +160,13 @@ impl<'a> Sub for &'a P {
 	type Output = P;
 	fn sub(self, a: &P) -> P {
 		P::new(self.x - a.x, self.y - a.y, self.z - a.z)
+	}
+}
+
+impl Mul<i32> for P {
+	type Output = P;
+	fn mul(self, a: i32) -> P {
+		P::new(self.x * a, self.y * a, self.z * a)
 	}
 }
 
