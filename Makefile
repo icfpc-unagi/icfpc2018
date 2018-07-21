@@ -14,5 +14,5 @@ cargo-test:
 .PHONY: cargo-test
 
 bazel-test:
-	bazel test ...
+	bazel build ...
 .PHONY: bazel-test
