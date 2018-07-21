@@ -8,6 +8,7 @@
 #include <unordered_set>
 #include <vector>
 #include "base/base.h"
+#include "strings/join.h"
 
 DEFINE_string(p, "", "problem file (.mdl)");
 DEFINE_int32(r, 0, "R instead of problem; no model check");
@@ -15,25 +16,62 @@ DEFINE_string(a, "", "assembly file (.nbt)");
 
 struct Coord {
   int x, y, z;
+  Coord(int _x, int _y, int _z) : x(_x), y(_y), z(_z) {}
+  Coord(const Coord& c) : x(c.x), y(c.y), z(c.z) {}
   bool operator==(const Coord& rhs) const {
     return x == rhs.x && y == rhs.y && z == rhs.z;
   }
   bool operator!=(const Coord& rhs) const { return !(*this == rhs); }
+  Coord operator+(const Coord& rhs) {
+    return Coord{x + rhs.x, y + rhs.y, z + rhs.z};
+  }
   bool is_valid(int r) const {
     return 0 <= x && x < r && 0 <= y && y < r && 0 <= z && z < r;
   }
-  int& axis(int a) {
-    switch (a) {
-      case 1:
-        return x;
-      case 2:
-        return y;
-      case 3:
-        return z;
+};
+
+static const Coord kZero = {0, 0, 0};
+static const std::array<Coord, 6> kAxis = {{
+    Coord{1, 0, 0},
+    Coord{0, 1, 0},
+    Coord{0, 0, 1},
+    Coord{-1, 0, 0},
+    Coord{0, -1, 0},
+    Coord{0, 0, -1},
+}};
+
+typedef Coord DCoord;
+
+ostream& operator<<(ostream& os, const Coord& c) {
+  return os << '<' << c.x << ',' << c.y << ',' << c.z << '>';
+}
+
+struct Region {
+  Coord a, b;
+  Region(const Coord& _a, const Coord& _b) : a(_a), b(_b) {
+    if (a.x > b.x) std::swap(a.x, b.x);
+    if (a.y > b.y) std::swap(a.y, b.y);
+    if (a.z > b.z) std::swap(a.z, b.z);
+  }
+  Region(const Region& r) : a(r.a), b(r.b) {}
+  bool operator==(const Region& rhs) const { return a == rhs.a && b == rhs.b; }
+  bool is_valid() const { return a != b; }
+  int dimension() const {
+    return (a.x == b.x ? 0 : 1) + (a.y == b.y ? 0 : 1) + (a.z == b.z ? 0 : 1);
+  }
+  std::vector<Coord> members() const {
+    std::vector<Coord> v;
+    for (int x = a.x; x <= b.x; ++x) {
+      for (int y = a.y; y <= b.y; ++y) {
+        for (int z = a.z; z <= b.z; ++z) {
+          v.emplace_back(x, y, z);
+        }
+      }
     }
-    LOG(FATAL) << "Bad axis";
+    return v;
   }
 };
+
 namespace std {
 template <>
 struct hash<Coord> {
@@ -41,31 +79,26 @@ struct hash<Coord> {
     return (c.z * 251 + c.y) * 251 + c.x;
   }
 };
+template <>
+struct hash<Region> {
+  std::size_t operator()(const Region& r) const {
+    hash<Coord> h;
+    return h(r.a) * 15813257 + h(r.b);
+  }
+};
 }  // namespace std
-static const Coord kZero = {0, 0, 0};
-
-typedef Coord DCoord;
-
-Coord operator+(const Coord& lhs, const DCoord& rhs) {
-  return Coord{lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z};
-}
-
-ostream& operator<<(ostream& os, const Coord& c) {
-  return os << '<' << c.x << ',' << c.y << ',' << c.z << '>';
-}
 
 bool check_range(int v, int c) { return 0 <= v && v < c; }
 
 DCoord near_diff(int nd) {
   // nd == (dx + 1) * 9 + (dy + 1) * 3 + (dz + 1)
-  DCoord d;
-  d.z = nd % 3 - 1;
+  int z = nd % 3 - 1;
   nd /= 3;
-  d.y = nd % 3 - 1;
+  int y = nd % 3 - 1;
   nd /= 3;
-  d.x = nd - 1;
-  if (d.x != 0 && d.y != 0 && d.z != 0) LOG(FATAL) << "invalid near difference";
-  return d;
+  int x = nd - 1;
+  if (x != 0 && y != 0 && z != 0) LOG(FATAL) << "invalid near difference";
+  return DCoord(x, y, z);
 }
 
 struct Matrix {
@@ -113,9 +146,10 @@ struct State {
   int64 energy_smove = 0;
   int64 energy_lmove = 0;
   int64 energy_fill = 0;
+  int64 energy_void = 0;
   bool harmonics = false;
   Matrix matrix;
-  std::unordered_map<int, Nanobot> bots;
+  std::map<int, Nanobot> bots;
   int steps = 0;
   int commands = 0;
 
@@ -128,34 +162,31 @@ struct State {
   }
   int64 energy() const {
     return energy_global + energy_local + energy_smove + energy_lmove +
-           energy_fill;
+           energy_fill + energy_void;
   }
   bool execute(FILE* fa) {
     while (!bots.empty()) {
+      std::vector<Coord> filled;
+      std::vector<Coord> voided;
       std::vector<std::pair<int, Nanobot>> bots_activated;
       std::unordered_map<int, Coord> fusionP;
       std::unordered_map<Coord, int> fusionS;
+      std::unordered_map<Region, std::unordered_set<Coord>> gfilled;
+      std::unordered_map<Region, std::unordered_set<Coord>> gvoided;
       std::unordered_set<Coord> volat;
-      std::unordered_set<Coord> uncon;
-      if (harmonics) {
-        energy_global += 30 * r * r * r;
-      } else {
-        energy_global += 3 * r * r * r;
-      }
+      bool halted = false;
+
+      energy_global += harmonics ? 30 * r * r * r : 3 * r * r * r;
       energy_local += 20 * bots.size();
-      for (int i = 0; i < 20; ++i) {
-        auto it = bots.find(i);
-        if (it == bots.end()) continue;
-        Nanobot& bot = it->second;
-        if (!volat.emplace(bot.pos).second) {
-          LOG(ERROR) << "Interference " << bot.pos;
-          return false;
-        }
+      VLOG(3) << "time " << steps;
+      for (auto& p : bots) {
+        int i = p.first;
+        Nanobot& bot = p.second;
+        VLOG(3) << "bot[" << i << "] " << bot.pos
+                << " seeds:" << strings::JoinInts(bot.seeds, ",");
+        if (!check_interference(&volat, bot.pos)) return false;
         int b = fgetc(fa);
-        if (b == EOF) {
-          LOG(ERROR) << "Unexpected EOF in the middle";
-          return false;
-        }
+        if (!check_eof(fa)) return false;
         if (b == 0b11111111) {  // Halt
           VLOG(2) << "Halt";
           if (bot.pos != kZero) {
@@ -170,7 +201,7 @@ struct State {
             LOG(ERROR) << "Halt with High harmonics";
             return false;
           }
-          bots.clear();
+          halted = true;
         } else if (b == 0b11111110) {  // Wait
           VLOG(2) << "Wait";
         } else if (b == 0b11111101) {  // Flip
@@ -178,87 +209,63 @@ struct State {
           harmonics = !harmonics;
         } else if ((b & 0b11001111) == 0b00000100) {  // SMove
           int llda = (b & 0b00110000) >> 4;
-          if (llda == 0) {
-            LOG(ERROR) << "SMove bad axis encoding";
-            return false;
-          }
           int b2 = fgetc(fa);
-          if (b2 == EOF) {
-            LOG(ERROR) << "Unexpected EOF (SMove)";
-            return false;
-          }
+          if (!check_eof(fa)) return false;
           int lldi = (b2 & 0b00011111) - 15;
           VLOG(2) << "SMove "
-                  << " xyz"[llda] << " " << lldi;
-          LOG_IF(FATAL, lldi == 0 || lldi < -15 || 15 < lldi)
-              << "Invalid long linear coordinate difference";
-          int& a = bot.pos.axis(llda);
-          int lldsign = lldi < 0 ? -1 : 1;
+                  << "?xyz"[llda] << " " << lldi;
+          if (llda == 0 || lldi == 0 || lldi < -15 || 15 < lldi) {
+            LOG(ERROR) << "Invalid long linear coordinate difference";
+            return false;
+          }
+          DCoord dir = kAxis[lldi < 0 ? llda - 1 + 3 : llda - 1];
           int lldlen = std::abs(lldi);
           for (int i = 0; i < lldlen; ++i) {
-            a += lldsign;
+            bot.pos = bot.pos + dir;
+            if (!check_coord(bot.pos)) return false;
             if (matrix[bot.pos]) {
               LOG(ERROR) << "SMove through Full voxel " << bot.pos;
               return false;
             }
-            if (!volat.emplace(bot.pos).second) {
-              LOG(ERROR) << "Interference " << bot.pos << " SMove vs ?";
-              return false;
-            }
-          }
-          if (!check_range(a, r)) {
-            LOG(ERROR) << "Invalid coordinate (SMove)";
-            return false;
+            if (!check_interference(&volat, bot.pos)) return false;
           }
           energy_smove += 2 * lldlen;
         } else if ((b & 0b00001111) == 0b00001100) {  // LMove
           int sld1a = (b & 0b00110000) >> 4;
           int sld2a = (b /* & 0b11000000 */) >> 6;
           int b2 = fgetc(fa);
-          if (b2 == EOF) {
-            LOG(ERROR) << "Unexpected EOF (LMove)";
-            return false;
-          }
+          if (!check_eof(fa)) return false;
           int sld1i = (b2 & 0b00001111) - 5;
           int sld2i = ((b2 /* & 0b11110000 */) >> 4) - 5;
           VLOG(2) << "LMove "
-                  << " xyz"[sld1a] << " " << sld1i << " "
-                  << " xyz"[sld2a] << " " << sld2i;
-          LOG_IF(FATAL, sld1i == 0 || sld1i < -5 || 5 < sld1i)
-              << "Invalid short linear coordinate difference";
-          LOG_IF(FATAL, sld2i == 0 || sld2i < -5 || 5 < sld2i)
-              << "Invalid short linear coordinate difference";
-          int& a1 = bot.pos.axis(sld1a);
-          int& a2 = bot.pos.axis(sld2a);
-          int sld1sign = sld1i < 0 ? -1 : 1;
+                  << "?xyz"[sld1a] << " " << sld1i << " "
+                  << "?xyz"[sld2a] << " " << sld2i;
+          if (sld1a == 0 || sld1i == 0 || sld1i < -5 || 5 < sld1i ||
+              sld2a == 0 || sld2i == 0 || sld2i < -5 || 5 < sld2i) {
+            LOG(ERROR) << "Invalid short linear coordinate difference";
+            return false;
+          }
           int sld1len = std::abs(sld1i);
-          int sld2sign = sld2i < 0 ? -1 : 1;
           int sld2len = std::abs(sld2i);
+          DCoord dir1 = kAxis[sld1i < 0 ? sld1a - 1 + 3 : sld1a - 1];
+          DCoord dir2 = kAxis[sld2i < 0 ? sld2a - 1 + 3 : sld2a - 1];
           for (int i = 0; i < sld1len; ++i) {
-            a1 += sld1sign;
+            bot.pos = bot.pos + dir1;
+            if (!check_coord(bot.pos)) return false;
             if (matrix[bot.pos]) {
               LOG(ERROR) << "LMove through Full voxel " << bot.pos;
               return false;
             }
-            if (!volat.emplace(bot.pos).second) {
-              LOG(ERROR) << "Interference " << bot.pos;
-              return false;
-            }
+            if (!check_interference(&volat, bot.pos)) return false;
           }
           for (int i = 0; i < sld2len; ++i) {
-            a2 += sld2sign;
+            bot.pos = bot.pos + dir2;
+            if (!check_coord(bot.pos)) return false;
             if (matrix[bot.pos]) {
               LOG(ERROR) << "LMove through Full voxel " << bot.pos;
               return false;
             }
-            if (!volat.emplace(bot.pos).second) {
-              LOG(ERROR) << "Interference " << bot.pos << " LMove vs ?";
-              return false;
-            }
-          }
-          if (!check_range(a1, r) || !check_range(a2, r)) {
-            LOG(ERROR) << "Invalid coordinate (LMove)";
-            return false;
+            if (!check_interference(&volat, bot.pos)) return false;
           }
           energy_lmove += 2 * (sld1len + 2 + sld2len);
         } else if ((b & 0b00000111) == 0b00000111) {  // FusionP
@@ -278,10 +285,7 @@ struct State {
           }
           int nd = (b /* & 0b11111000 */) >> 3;
           int m = fgetc(fa);
-          if (m == EOF) {
-            LOG(ERROR) << "Unexpected EOF (Fission)";
-            return false;
-          }
+          if (!check_eof(fa)) return false;
           if (bot.seeds.size() < m + 1) {
             LOG(ERROR) << "Fission lacking seeds";
             return false;
@@ -290,14 +294,8 @@ struct State {
           DCoord dc = near_diff(nd);
           Coord c = bot.pos + dc;
           VLOG(2) << "Fission " << dc << " " << m;
-          if (!c.is_valid(r)) {
-            LOG(ERROR) << "Invalid coordinate (Fission)";
-            return false;
-          }
-          if (!volat.emplace(c).second) {
-            LOG(ERROR) << "Interference " << c << " Fission vs ?";
-            return false;
-          }
+          if (!check_coord(c)) return false;
+          if (!check_interference(&volat, c)) return false;
           bots_activated.emplace_back(
               std::piecewise_construct, std::forward_as_tuple(j),
               std::forward_as_tuple(c, bot.seeds.begin() + 1,
@@ -309,19 +307,52 @@ struct State {
           DCoord dc = near_diff(nd);
           Coord c = bot.pos + dc;
           VLOG(2) << "Fill " << dc;
-          if (!c.is_valid(r)) {
-            LOG(ERROR) << "Invalid coordinate (Fill)";
+          if (!check_coord(c)) return false;
+          if (!check_interference(&volat, c)) return false;
+          filled.push_back(c);
+        } else if ((b & 0b00000111) == 0b00000010) {  // Void
+          int nd = (b /* & 0b11111000 */) >> 3;
+          Coord c = bot.pos + near_diff(nd);
+          if (!check_coord(c)) return false;
+          if (!check_interference(&volat, c)) return false;
+          voided.push_back(c);
+        } else if ((b & 0b00000111) == 0b00000001) {  // GFill
+          int nd = (b /* & 0b11111000 */) >> 3;
+          Coord c1 = bot.pos + near_diff(nd);
+          if (!check_coord(c1)) return false;
+          Coord c2 = bot.pos;
+          c2.x += fgetc(fa);
+          c2.y += fgetc(fa);
+          c2.z += fgetc(fa);
+          if (!check_eof(fa)) return false;
+          if (!check_coord(c2)) return false;
+          if (!gfilled
+                   .emplace(std::piecewise_construct,
+                            std::forward_as_tuple(c1, c2),
+                            std::forward_as_tuple())
+                   .first->second.emplace(c1)
+                   .second) {
+            LOG(ERROR) << "GFill corner conflict";
             return false;
           }
-          if (!volat.emplace(c).second) {
-            LOG(ERROR) << "Interference " << c << " Fill vs ?";
+        } else if ((b & 0b00000111) == 0b00000000) {  // GVoid
+          int nd = (b /* & 0b11111000 */) >> 3;
+          Coord c1 = bot.pos + near_diff(nd);
+          if (!check_coord(c1)) return false;
+          Coord c2 = bot.pos;
+          c2.x += fgetc(fa);
+          c2.y += fgetc(fa);
+          c2.z += fgetc(fa);
+          if (!check_eof(fa)) return false;
+          if (!check_coord(c2)) return false;
+          if (!gvoided
+                   .emplace(std::piecewise_construct,
+                            std::forward_as_tuple(c1, c2),
+                            std::forward_as_tuple())
+                   .first->second.emplace(c1)
+                   .second) {
+            LOG(ERROR) << "GVoid corner conflict";
             return false;
-          }
-          if (matrix[c]) {
-            energy_fill += 6;
-          } else {
-            uncon.insert(c);
-            energy_fill += 12;
           }
         } else {
           LOG(ERROR) << "Unknown command";
@@ -329,6 +360,7 @@ struct State {
         }
         ++commands;
       }
+      // Group commands
       for (auto& p : fusionP) {
         Nanobot& primary = bots.find(p.first)->second;
         auto it = fusionS.find(primary.pos);
@@ -355,10 +387,45 @@ struct State {
         LOG(ERROR) << "FusionS with no matching FusionP";
         return false;
       }
+      for (const auto& p : gfilled) {
+        int dim = p.first.dimension();
+        if (dim == 0) {
+          LOG(ERROR) << "GFill 0-dimension";
+          return false;
+        }
+        if (p.second.size() != (1 << dim)) {
+          LOG(ERROR) << "Gfill mising corner";
+          return false;
+        }
+        for (auto& m : p.first.members()) {
+          if (!check_interference(&volat, m)) return false;
+          filled.push_back(std::move(m));
+        }
+      }
+      for (auto& p : gvoided) {
+        int dim = p.first.dimension();
+        if (dim == 0) {
+          LOG(ERROR) << "GVoid 0-dimension";
+          return false;
+        }
+        if (p.second.size() != (1 << dim)) {
+          LOG(ERROR) << "GVoid mising corner";
+          return false;
+        }
+        for (auto& m : p.first.members()) {
+          if (!check_interference(&volat, m)) return false;
+          voided.push_back(std::move(m));
+        }
+      }
+
+      // Update
       for (auto& bot : bots_activated) bots.emplace(std::move(bot));
+      for (const Coord& c : filled) energy_fill += matrix[c] ? 6 : 12;
+      for (const Coord& c : voided) energy_void += matrix[c] ? -12 : 3;
       if (harmonics) {
-        for (const Coord& u : uncon) matrix[u] = true;
-      } else {
+        for (const Coord& u : filled) matrix[u] = true;
+      } else if (voided.empty()) {
+        std::unordered_set<Coord> uncon(filled.begin(), filled.end());
         while (!uncon.empty()) {
           auto it = uncon.begin();
           Coord u = *it;
@@ -376,8 +443,34 @@ struct State {
           }
           matrix[u] = true;
         }
+      } else {
+        // TODO: cover dynamic disconnections
+        for (const Coord& c : filled) matrix[c] = true;
+        for (const Coord& c : voided) matrix[c] = false;
       }
+      if (halted) bots.clear();
       ++steps;
+    }
+    return true;
+  }
+  static bool check_eof(FILE* fp) {
+    if (feof(fp)) {
+      LOG(ERROR) << "Unexpected EOF";
+      return false;
+    }
+    return true;
+  }
+  bool check_coord(const Coord& c) const {
+    if (!c.is_valid(r)) {
+      LOG(ERROR) << "Invalid coordinate";
+      return false;
+    }
+    return true;
+  }
+  bool check_interference(std::unordered_set<Coord>* v, const Coord& c) const {
+    if (!v->emplace(c).second) {
+      LOG(ERROR) << "Interference " << c;
+      return false;
     }
     return true;
   }
