@@ -27,8 +27,10 @@ if ! id ninetan; then
 fi
 
 mkdir -p /home/ninetan/bin
-cp "$(dirname "${BASH_SOURCE}")/ninetan-sync.sh" /home/ninetan/bin/ninetan-sync
-chmod +x /home/ninetan/bin/ninetan-sync
+for program in ninetan-sync ninetan-daemon; do
+    cp "$(dirname "${BASH_SOURCE}")/${program}.sh" "/home/ninetan/bin/${program}"
+    chmod +x "/home/ninetan/bin/${program}"
+done
 
 ###############################################################################
 # Set up NFS
@@ -61,6 +63,7 @@ systemctl daemon-reload
 SERVICES=(
     ninetan-docker
     ninetan-sync
+    ninetan-daemon\@{1..4}
 )
 for service in "${SERVICES[@]}"; do
     systemctl enable "${service}"

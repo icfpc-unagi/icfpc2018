@@ -1,0 +1,11 @@
+[Unit]
+Description=ninetan-daemon instance %i
+Requires=docker.service
+After=docker.service
+
+[Service]
+ExecStart=/home/ninetan/bin/ninetan-daemon
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
