@@ -14,6 +14,7 @@ DEFINE_string(t, "", "target model file (.nbt)");
 DEFINE_string(p, "", "(deprecated)");
 DEFINE_int32(r, 0, "R instead of problem; no model check");
 DEFINE_string(a, "", "(deprecated)");
+DEFINE_string(output_model, "tmp.mdl", "output final state as model");
 
 struct Coord {
   int x, y, z;
@@ -120,6 +121,15 @@ struct Matrix {
   }
   bool operator==(const Matrix& rhs) const { return m_ == rhs.m_; }
   bool operator!=(const Matrix& rhs) const { return m_ != rhs.m_; }
+  std::vector<uint8> dump() const {
+    std::vector<uint8> bytes((m_.size() + 7) / 8, 0);
+    for (int i = 0; i < bytes.size(); ++i) {
+      for (int j = 0; j < 8; ++j) {
+        if (i * 8 + j < m_.size() && m_[i * 8 + j]) bytes[i] |= 1 << j;
+      }
+    }
+    return bytes;
+  }
 
  private:
   size_t index(const Coord& c) const { return (c.x * r_ + c.y) * r_ + c.z; }
@@ -328,7 +338,7 @@ struct State {
           if (!check_eof(fa)) return false;
           DCoord fd(fdx - 30, fdy - 30, fdz - 30);
           VLOG(2) << "GFill " << dc << " " << fd;
-          if (fd.x > 30 || fd.y  > 30 || fd.z > 30) {
+          if (fd.x > 30 || fd.y > 30 || fd.z > 30) {
             LOG(ERROR) << "Invalid far coordinate distance " << fd;
             return false;
           }
@@ -354,7 +364,7 @@ struct State {
           if (!check_eof(fa)) return false;
           DCoord fd(fdx - 30, fdy - 30, fdz - 30);
           VLOG(2) << "GVoid " << dc << " " << fd;
-          if (fd.x > 30 || fd.y  > 30 || fd.z > 30) {
+          if (fd.x > 30 || fd.y > 30 || fd.z > 30) {
             LOG(ERROR) << "Invalid far coordinate distance " << fd;
             return false;
           }
@@ -532,6 +542,17 @@ std::unique_ptr<Matrix> read_model(const char* filename) {
   return std::unique_ptr<Matrix>(new Matrix(r, buf));
 }
 
+void write_model(const Matrix& m, const char* filename) {
+  FILE* fp = fopen(filename, "w");
+  CHECK(fp != nullptr) << "Failed to open " << filename;
+  fputc(m.r(), fp);
+  vector<uint8> buf = m.dump();
+  CHECK(fwrite(buf.data(), buf.size(), 1, fp) == 1)
+      << "Failed to write " << filename;
+  fclose(fp);
+  LOG(INFO) << "Written " << filename;
+}
+
 int main(int argc, char** argv) {
   ParseCommandLineFlags(&argc, &argv);
 
@@ -578,6 +599,10 @@ int main(int argc, char** argv) {
     printf("time:%d\n", s.steps);
     printf("commands:%d\n", s.commands);
     printf("energy:%lld\n", s.energy());
+  }
+
+  if (!FLAGS_output_model.empty()) {
+    write_model(s.matrix, FLAGS_output_model.c_str());
   }
 
   if (!success) return 1;

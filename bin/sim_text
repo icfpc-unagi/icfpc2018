@@ -6,4 +6,4 @@ if [ -z "$1" ]; then
 fi
 in="$1"
 shift
-trace_binarize /dev/stdout < "$in" | sim -a /dev/stdin "$@" --logtostderr
+"$(dirname ${BASH_SOURCE})/trace_binarize" /dev/stdout < "$in" | "$(dirname ${BASH_SOURCE})/sim" -a /dev/stdin "$@" --logtostderr
