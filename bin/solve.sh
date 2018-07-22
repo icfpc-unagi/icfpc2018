@@ -9,6 +9,10 @@ DEFINE_string --alias=o output '' 'Output file.'
 DEFINE_string problem 'FA001' 'Problem to solve.'
 DEFINE_bool skip_postprocess false 'Skip post process.'
 DEFINE_bool simulate false 'Simulate.'
+DEFINE_string run_postproc_binary "$(dirname "${BASH_SOURCE}")/run_postproc" "run_postproc command."
+DEFINE_string trace_binarize_binary "$(dirname "${BASH_SOURCE}")/trace_binarize" "trace_binarize command."
+DEFINE_string sim_binary "$(dirname "${BASH_SOURCE}")/sim" "sim command"
+DEFINE_string command '' 'Optional command.'
 eval "${IMOSH_INIT}"
 
 problem_file="$(dirname "${BASH_SOURCE}")/../data/problemsF/${FLAGS_problem}"
@@ -16,6 +20,10 @@ problem_file="$(dirname "${BASH_SOURCE}")/../data/problemsF/${FLAGS_problem}"
 args=("${problem_file}_tgt.mdl" "$@")
 
 run_solver() {
+	if [ "${FLAGS_command}" != '' ]; then
+		${FLAGS_command} "${args[@]}"
+		return
+	fi
 	if [ "${FLAGS_solver}" == 'chokudai' ]; then
 		version="${FLAGS_version}"
 		if [ "${FLAGS_version}" == '' ]; then
@@ -36,13 +44,13 @@ run_with_postprocess() {
 	if (( FLAGS_skip_postprocess )); then
 		run_solver
 	else
-		run_solver | "$(dirname "${BASH_SOURCE}")/run_postproc" "${problem_file}_tgt.mdl" /dev/stdin
+		run_solver | "${FLAGS_run_postproc_binary}" "${problem_file}_tgt.mdl" /dev/stdin
 	fi
 }
 
 run_with_binarizer() {
 	if (( FLAGS_binary )); then
-		run_with_postprocess | "$(dirname "${BASH_SOURCE}")/trace_binarize" /dev/stdout
+		run_with_postprocess | "${FLAGS_trace_binarize_binary}" /dev/stdout
 	else
 		run_with_postprocess
 	fi
@@ -52,7 +60,7 @@ run_with_simulator() {
 	if (( FLAGS_simulate )); then
 		FLAGS_binary=1
 		run_with_binarizer | \
-			"$(dirname "${BASH_SOURCE}")/sim" \
+			"${FLAGS_sim_binary}" \
 				--alsologtostderr="${FLAGS_alsologtostderr}" \
 				--logtostderr="${FLAGS_logtostderr}" \
 				-a /dev/stdin -p "${problem_file}_tgt.mdl"
