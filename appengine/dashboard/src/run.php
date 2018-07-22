@@ -28,6 +28,19 @@ function increase_time_limit() {
 	return FALSE;
 }
 
+function rejudge() {
+	global $run_id;
+	if (!$_SERVER['USER_IS_ADMIN']) {
+		return 'You are not admin.';
+	}
+	Database::Command('
+		UPDATE runs
+		SET run_queue = NOW() - INTERVAL 2 WEEK
+		WHERE run_id = {run_id}',
+  		['run_id' => $run_id]);
+	return FALSE;
+}
+
 if ($_POST['action'] == 'increase_time_limit') {
 	$error = increase_time_limit();
 	if ($error) {
@@ -35,17 +48,20 @@ if ($_POST['action'] == 'increase_time_limit') {
 	} else {
 		echo "<div class=\"success\">Successfully queued.</div>";
 	}
-} else if (!$run['run_queue']) {
+} else if (!$run['run_queue'] && !$run['run_score']) {
 	echo '<h2>Rejudge</h2>';
 
 	echo '<div class="form">';
 
-	if (!$run['run_score']) {
-		echo "<form action=\"run.php?run_id=$run_id\" method=\"POST\">";
-		echo '<input type="hidden" name="action" value="increase_time_limit">';
-		echo '<center><input type="submit" value="Redjuge forever"></center>';
-		echo '</form>';
-	}
+	echo "<form action=\"run.php?run_id=$run_id\" method=\"POST\">";
+	echo '<input type="hidden" name="action" value="increase_time_limit">';
+	echo '<center><input type="submit" value="Redjuge"></center>';
+	echo '</form>';
+
+	echo "<form action=\"run.php?run_id=$run_id\" method=\"POST\">";
+	echo '<input type="hidden" name="action" value="increase_time_limit">';
+	echo '<center><input type="submit" value="Redjuge forever"></center>';
+	echo '</form>';
 
 	echo '</div>';
 }

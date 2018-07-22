@@ -49,11 +49,11 @@ if ($run['problem_has_target']) {
 }
 file_put_contents('command', $command);
 file_put_contents('wrapper', '
-{ time bash ./command | head -c 30000000 >stdout; } 2>&1 | head -c 1000000 >stderr
+{ time bash ./command | head -c 30000000 >stdout; } 2>&1 | { head -c 1000000; cat >/dev/null; } >stderr
 ');
 
 INFO("Scoring a run (run_id={$run['run_id']})...");
-$command = dirname(__FILE__) . '/timeout --timeout=30 bash ./wrapper';
+$command = dirname(__FILE__) . '/timeout --timeout=600 bash ./wrapper';
 system($command);
 
 $stdout = file_get_contents('stdout');
