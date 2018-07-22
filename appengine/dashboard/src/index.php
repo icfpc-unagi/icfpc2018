@@ -107,6 +107,132 @@ if (!$program_id) {
     echo '</ul>';
 }
 
+if ($program_id >= 10000) {
+    echo '<h2>Execution</h2>';
+
+    function enqueue() {
+        global $program_id;
+        if (!$_SERVER['USER_IS_ADMIN']) {
+            return 'You are not admin.';
+        }
+        $program_group = $_POST['problem_group'];
+        if ($program_group == 'small') {
+            $pattern = '%001';
+        } else {
+            $pattern = "$program_group%";
+        }
+        Database::Command('
+            INSERT IGNORE INTO runs(problem_id, program_id, run_queue) SELECT
+                problem_id,
+                {program_id} AS program_id,
+                NOW() - INTERVAL (RAND() + 1) * 24 * 60 * 60 SECOND AS run_queue
+            FROM problems
+            WHERE problem_name LIKE {pattern}',
+            ['pattern' => $pattern, 'program_id' => $program_id]);
+    }
+
+    if ($_POST['action'] == 'enqueue') {
+        $error = enqueue();
+        if ($error) {
+            echo "<div class=\"error\">Error: $error</div>";
+        } else {
+            echo "<div class=\"success\">Successfully queued.</div>";
+        }
+    }
+
+    function rescore() {
+        global $program_id;
+        if (!$_SERVER['USER_IS_ADMIN']) {
+            return 'You are not admin.';
+        }
+        Database::Command('
+            UPDATE runs SET
+                run_score_queue =
+                    NOW() - INTERVAL (RAND() + 14) * 24 * 60 * 60 SECOND
+            WHERE run_stdout IS NOT NULL AND run_score_queue IS NULL AND
+                program_id = {program_id}',
+            ['program_id' => $program_id]);
+    }
+
+    if ($_POST['action'] == 'rescore') {
+        $error = rescore();
+        if ($error) {
+            echo "<div class=\"error\">Error: $error</div>";
+        } else {
+            echo "<div class=\"success\">Successfully queued.</div>";
+        }
+    }
+
+    echo '<div class="form"><center>';
+
+    ob_start();
+    $incomplete = FALSE;
+    foreach (Database::Select('
+        SELECT
+            LEFT(problem_name, 2) AS problem_group,
+            SUM(waiting) AS waiting,
+            SUM(running) AS running,
+            SUM(complete) AS complete,
+            COUNT(*) AS total
+        FROM
+            (
+            SELECT
+                problem_id,
+                run_queue <= NOW() AS waiting,
+                run_queue > NOW() AS running,
+                run_stdout IS NOT NULL AS complete
+            FROM
+                runs
+            WHERE
+                program_id = {program_id}
+        ) AS s
+        NATURAL RIGHT JOIN problems GROUP BY problem_group',
+        ['program_id' => $program_id]) as $problem_group) {
+        switch ($problem_group['problem_group']) {
+            case 'FA': $name = 'Assemble'; break;
+            case 'FD': $name = 'Disassemble'; break;
+            case 'FR': $name = 'Reassemble'; break;
+            default: $name = $problem_group['problem_group']; break;
+        }
+        if ($problem_group['total'] == $problem_group['complete']) {
+            $disabled = ' disabled';
+        } else {
+            $disabled = '';
+            $incomplete = TRUE;
+        }
+        echo "<form action=\"/?program_id=$program_id\" method=\"POST\" style=\"display:inline-block; margin: 0 10px;\">";
+        echo '<input type="hidden" name="action" value="enqueue">';
+        echo "<input type=\"hidden\" name=\"problem_group\" value=\"{$problem_group['problem_group']}\">";
+        echo "<center><input type=\"submit\" value=\"Start $name\" $disabled></center>";
+        echo '</form>';
+    }
+    $group_output = ob_get_clean();
+
+    echo "<form action=\"/?program_id=$program_id\" method=\"POST\" style=\"display:inline-block; margin: 0 10px;\">";
+    echo '<input type="hidden" name="action" value="enqueue">';
+    echo "<input type=\"hidden\" name=\"problem_group\" value=\"\">";
+    $disabled = $incomplete ? '' : ' disabled';
+    echo "<center><input type=\"submit\" value=\"Start All\" $disabled></center>";
+    echo '</form>';
+
+    echo "<form action=\"/?program_id=$program_id\" method=\"POST\" style=\"display:inline-block; margin: 0 10px;\">";
+    echo '<input type="hidden" name="action" value="enqueue">';
+    echo "<input type=\"hidden\" name=\"problem_group\" value=\"small\">";
+    $disabled = $incomplete ? '' : ' disabled';
+    echo "<center><input type=\"submit\" value=\"Start Small\" $disabled></center>";
+    echo '</form>';
+
+    echo $group_output;
+
+    echo "<form action=\"/?program_id=$program_id\" method=\"POST\" style=\"display:inline-block; margin: 0 10px;\">";
+    echo '<input type="hidden" name="action" value="rescore">';
+    echo "<input type=\"hidden\" name=\"problem_group\" value=\"{$problem_group['problem_group']}\">";
+    echo "<center><input type=\"submit\" value=\"Restart Scoring\"></center>";
+    echo '</form>';
+
+    echo '</center></div>';
+}
+
 $num_ranks = 10;
 echo '<h2>Overeview</h2>';
 echo '<div style="width:100%;overflow-x:scroll"><table class="table">';
@@ -248,7 +374,15 @@ foreach ($problems as $problem) {
                         $score = 'Disabled';
                     }
                 }
-                echo "<td><a href=\"/run.php?run_id={$run['run_id']}\"><i>$score</i></a></td>";
+                echo "<td>";
+                if ($run['run_id']) {
+                    echo "<a href=\"/run.php?run_id={$run['run_id']}\">";
+                }
+                echo "<i>$score</i>";
+                if ($run['run_id']) {
+                    echo "</a>";
+                }
+                echo "</td>";
                 continue;
             }
             echo '<td class="rank"></td>';
