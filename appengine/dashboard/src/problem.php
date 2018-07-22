@@ -18,7 +18,7 @@ $programs = [];
 foreach (Database::SELECT('
   SELECT program_id, program_name, run_score
   FROM runs NATURAL JOIN programs
-  WHERE problem_id = {problem_id}
+  WHERE problem_id = {problem_id} AND run_score IS NOT NULL
   ORDER BY run_score',
   ['problem_id' => $problem_id]) as $run) {
   $programs[$run['program_id']] = $run;
