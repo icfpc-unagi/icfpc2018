@@ -46,7 +46,7 @@ Database::Command('
 		run_stderr = {run_stderr},
 		run_executed = NOW(),
 		run_queue = NULL,
-		run_score_queue = NOW()
+		run_score_queue = NOW() - INTERVAL 1 DAY
 	WHERE run_id = @run_id', [
 	'run_stdout' => file_get_contents('stdout'),
 	'run_stderr' => file_get_contents('stderr'),
