@@ -285,8 +285,11 @@ template<class T> vector<T> Split(const string &str) {
   return res;
 }
 
-Operation *ParseOperation(const string &line, size_t lineno) {
-  if (line.length() >= 1 && line[0] == '#') return nullptr;
+Operation *ParseOperation(string line, size_t lineno) {
+  auto pos = line.find('#');
+  if (pos != std::string::npos) {
+    line = line.substr(0, pos);
+  }
 
   vector<string> tokens = Split<string>(line);
   if (tokens.size() == 0) return nullptr;
