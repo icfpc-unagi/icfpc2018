@@ -14,7 +14,9 @@ DEFINE_string(t, "", "target model file (.nbt)");
 DEFINE_string(p, "", "(deprecated)");
 DEFINE_int32(r, 0, "R instead of problem; no model check");
 DEFINE_string(a, "", "(deprecated)");
-DEFINE_string(output_model, "tmp.mdl", "output final state as model");
+DEFINE_string(output_model, "", "output final state as model file");
+DEFINE_string(output_xmodel, "", "output final state as extended model file");
+DEFINE_int32(stop_at, 0, "time step to stop (0 to not stop)");
 
 struct Coord {
   int x, y, z;
@@ -504,6 +506,7 @@ struct State {
       for (auto& bot : bots_activated) bots.emplace(std::move(bot));
       if (halted) bots.clear();
       ++steps;
+      if (FLAGS_stop_at > 0 && FLAGS_stop_at == steps) return true;
     }
     return true;
   }
@@ -542,13 +545,20 @@ std::unique_ptr<Matrix> read_model(const char* filename) {
   return std::unique_ptr<Matrix>(new Matrix(r, buf));
 }
 
-void write_model(const Matrix& m, const char* filename) {
+void write_model(const Matrix& m, const std::map<int, Nanobot>& bots,
+                 const char* filename) {
   FILE* fp = fopen(filename, "w");
   CHECK(fp != nullptr) << "Failed to open " << filename;
   fputc(m.r(), fp);
   vector<uint8> buf = m.dump();
   CHECK(fwrite(buf.data(), buf.size(), 1, fp) == 1)
       << "Failed to write " << filename;
+  for (const auto& p : bots) {
+    fputc(p.first, fp);
+    fputc(p.second.pos.x, fp);
+    fputc(p.second.pos.y, fp);
+    fputc(p.second.pos.z, fp);
+  }
   fclose(fp);
   LOG(INFO) << "Written " << filename;
 }
@@ -585,7 +595,8 @@ int main(int argc, char** argv) {
 
   State s(*source);
   bool success = s.execute(fa);
-  LOG_IF(INFO, success) << "Halted successfully";
+  LOG_IF(INFO, FLAGS_stop_at != 0) << "Stopped";
+  LOG_IF(INFO, FLAGS_stop_at == 0 && success) << "Halted successfully";
   LOG(INFO) << "Result:"
             << "\n           time : " << s.steps
             << "\n       commands : " << s.commands
@@ -602,12 +613,15 @@ int main(int argc, char** argv) {
   }
 
   if (!FLAGS_output_model.empty()) {
-    write_model(s.matrix, FLAGS_output_model.c_str());
+    write_model(s.matrix, {}, FLAGS_output_model.c_str());
+  }
+  if (!FLAGS_output_xmodel.empty()) {
+    write_model(s.matrix, s.bots, FLAGS_output_xmodel.c_str());
   }
 
   if (!success) return 1;
 
-  if (target && s.matrix != *target) {
+  if (FLAGS_stop_at == 0 && target && s.matrix != *target) {
     LOG(ERROR) << "Constructed model unmatched";
     return 1;
   }
