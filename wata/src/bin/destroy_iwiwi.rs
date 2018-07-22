@@ -16,6 +16,7 @@ Backlog:
 
 そのうち
 - 余るような小さいやつだったら1箇所にbotを2つおく
+- flip
 */
 
 use wata::*;
@@ -118,6 +119,10 @@ impl CommandSet {
         return self.commands.iter().all(|&cmd| cmd == Command::Wait);
     }
 
+    fn is_all_busy(&self) -> bool {
+        return self.commands.iter().all(|&cmd| cmd != Command::Wait);
+    }
+
     fn gvoid_below_layer(&mut self, bots: [&Bot; 4]) {
         // TODO: 常に真下ではなく斜めを使ってわずかに稼ぐか？（優先度低い）
         let nd = P::new(0, -1, 0);
@@ -133,6 +138,16 @@ impl CommandSet {
         }
     }
 
+    fn flip_by_somebody(&mut self) {
+        for i in 0..self.commands.len() {
+            if self.commands[i] == Command::Wait {
+                self.commands[i] = Command::Flip;
+                return;
+            }
+        }
+        panic!();
+    }
+
     fn emit(&self) {
         for command in self.commands.iter() {
             println!("{}", command.to_string());
@@ -144,6 +159,8 @@ impl CommandSet {
 struct App {
     model: Model,
     bots: Vec<Bot>,
+    fission_commands: Vec<Command>,
+    fusion_commands: Vec<Command>,
     command_sets: Vec<CommandSet>,
 }
 
@@ -154,6 +171,8 @@ impl App {
         App {
             model: model.clone(),
             bots: vec![Bot { bid: 0, p: P::new(0, 0, 0)}; 1],
+            fission_commands: vec![],
+            fusion_commands: vec![],
             command_sets: vec![],
         }
     }
@@ -166,9 +185,8 @@ impl App {
                 let mut cs = CommandSet::new(self.bots.len());
 
                 let mut ix = parity_x;
-                let mut iz = parity_z;
-
                 while ix + 1 < n_bots_x {
+                    let mut iz = parity_z;
                     while iz + 1 < n_bots_z {
                         cs.gvoid_below_layer([
                             &self.bots[bot_grid[ix + 0][iz + 0]],
@@ -245,8 +263,9 @@ impl App {
         }).collect();
 
         let (ord, cmds) = fission_to(&self.model.filled, &ps);
+        self.fission_commands = cmds;
         // let ord: Vec<usize> = (0..n_bots).collect();
-        // TODO: print command
+        eprintln!("{:?}", ord);
 
         self.bots = (0..n_bots).map(|bid| {
             Bot {
@@ -255,20 +274,34 @@ impl App {
             }
         }).collect();
         for (&i, &p) in ord.iter().zip(ps.iter()) {
-            self.bots[i].p = p;
+            self.bots[i - 1].p = p;  // ord is 1-indexed
         }
 
         let bot_grid = (0..n_bots_x).map(|ix| {
             (0..n_bots_z).map(|iz| {
-                ord[ix * n_bots_z + iz]
+                ord[ix * n_bots_z + iz] - 1  // ord is 1-indexed
             }).collect()
         }).collect();
         return bot_grid;
     }
 
+    fn fusion(&mut self) {
+        let r = self.model.r;
+        self.fusion_commands = postproc::fusion_all(
+            &mat![false; r; r; r],
+            self.bots.iter().map(|b| {b.p}).collect()
+        )
+    }
+
     fn emit(&self) {
+        for command in self.fission_commands.iter() {
+            println!("{}", command.to_string());
+        }
         for command_set in self.command_sets.iter() {
             command_set.emit();
+        }
+        for command in self.fusion_commands.iter() {
+            println!("{}", command.to_string());
         }
     }
 
@@ -277,6 +310,7 @@ impl App {
         // TODO: hoge
         let n_bots_x = min(6, (r - 1) / (CELL_LENGTH as usize) + 2);
         let n_bots_z = n_bots_x;
+        let n_bots = n_bots_x * n_bots_z;
         eprintln!("R: {}, Bot grid: {} X {}", r, n_bots_x, n_bots_z);
 
         let bot_grid = self.fission(n_bots_x, n_bots_z);
@@ -285,28 +319,33 @@ impl App {
 
         self.destroy_session(&bot_grid);
 
+        // Turn on harmonics
+        if self.command_sets.first_mut().unwrap().is_all_busy() {
+            self.command_sets.insert(0, CommandSet::new(n_bots));
+        }
+        self.command_sets.first_mut().unwrap().flip_by_somebody();
+
+        // Turn off harmonics
+        if self.command_sets.last_mut().unwrap().is_all_busy() {
+            self.command_sets.push(CommandSet::new(n_bots));
+        }
+        self.command_sets.last_mut().unwrap().flip_by_somebody();
+
+        /*
         for (i, command_set) in self.command_sets.iter().enumerate() {
             println!("[ STEP {} ]", i);
             command_set.emit();
-        }
+        }*/
 
-        // eprintln!("{:?}", self.command_sets);
-        // self.emit();
+        self.fusion();
+
+        self.emit();
     }
 }
-
-/*
-fn destroy_session(
-    model: Model, Vec<Vec<usize>>,
-) {
-
-}
-*/
 
 fn main() {
     let file = std::env::args().nth(1).unwrap();
     let model = wata::read(&file);
-
     let mut app = App::new(&model);
     app.main();
 }
