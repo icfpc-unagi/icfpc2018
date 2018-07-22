@@ -7,7 +7,7 @@ INFO('Fetching a run...');
 Database::Command('
 	UPDATE runs SET
 		run_id = (@run_id := run_id),
-		run_queue = NOW() + INTERVAL 10 SECOND
+		run_queue = NOW() + INTERVAL 600 SECOND
 	WHERE run_queue < NOW() LIMIT 1');
 $run = Database::SelectRow('
 	SELECT
