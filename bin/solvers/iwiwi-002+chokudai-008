@@ -6,4 +6,4 @@ echo ---- DESTRUCTION ---- 1>&2
 "$(dirname ${BASH_SOURCE})/iwiwi-002" "" "$2" | grep -v 'HALT'
 
 echo ---- CONSTRUCTION ---- 1>&2
-mono "$(dirname ${BASH_SOURCE})/../chokudai-solver/008.exe" "$1"
+mono "$(dirname ${BASH_SOURCE})/../chokudai-solver/008.exe" "$1" | "$(dirname "${BASH_SOURCE}")/../run_postproc" "$1" /dev/stdin
