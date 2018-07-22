@@ -17,7 +17,23 @@ eval "${IMOSH_INIT}"
 
 problem_file="$(dirname "${BASH_SOURCE}")/../data/problemsF/${FLAGS_problem}"
 
-args=("${problem_file}_tgt.mdl" "$@")
+args=()
+
+target_file="${problem_file}_tgt.mdl"
+if [ -f "${target_file}" ]; then
+	args+=("${target_file}")
+else
+	args+=('')
+fi
+
+source_file="${problem_file}_src.mdl"
+if [ -f "${source_file}" ]; then
+	args+=("${source_file}")
+else
+	args+=('')
+fi
+
+args+=("$@")
 
 run_solver() {
 	if [ "${FLAGS_command}" != '' ]; then
