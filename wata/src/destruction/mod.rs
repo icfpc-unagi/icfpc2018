@@ -1,4 +1,7 @@
 #![allow(unused)]
+
+pub mod small;
+
 // extern crate wata;
 
 /*
