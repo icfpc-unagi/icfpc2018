@@ -91,7 +91,8 @@ foreach (Database::Select('
 }
 
 $standings = [];
-foreach (Database::Select('SELECT * FROM standing') as $row) {
+foreach (Database::Select('SELECT * FROM standing ORDER BY run_score') as $row) {
+    if (isset($standings[$row['problem_id']][$row['program_id']])) continue;
     $standings[$row['problem_id']][$row['program_id']] = $row;
 }
 
