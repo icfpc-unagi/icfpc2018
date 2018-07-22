@@ -3,7 +3,7 @@ use *;
 use std::collections::*;
 
 
-pub fn fusion_all(matrix: V3<bool>, positions: Vec<P>) -> Vec<Command> {
+pub fn fusion_all(matrix: &V3<bool>, positions: Vec<P>) -> Vec<Command> {
     let mut return_cmds = Vec::new();
     let r = matrix.len();
     eprintln!("{:?}", r);

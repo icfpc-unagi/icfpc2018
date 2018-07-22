@@ -35,7 +35,7 @@ fn main() {
     for bot in sim.bots.iter() {
         positions.push(bot.p);
     }
-    for cmd in postproc::fusion_all(model.filled, positions) {
+    for cmd in postproc::fusion_all(&model.filled, positions) {
         println!("{}", cmd.to_string());
     }
 }
