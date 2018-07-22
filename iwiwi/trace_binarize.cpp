@@ -26,7 +26,7 @@ using namespace std;
   }
 
 template<typename T>
-void write_binary(std::ostream &os, const T &t) {
+void WriteBinary(std::ostream &os, const T &t) {
   CHECK_PERROR(os.write((char*)&t, sizeof(T)));
 }
 
@@ -106,7 +106,7 @@ struct NullaryOperation : public Operation {
   virtual uint8_t GetSignature() = 0;
 
   virtual void Emit(ostream &os) {
-    write_binary<uint8_t>(os, GetSignature());
+    WriteBinary<uint8_t>(os, GetSignature());
   }
 };
 
@@ -124,7 +124,7 @@ struct NCOnlyOperation : public Operation {
   virtual uint8_t GetSignature() = 0;
 
   virtual void Emit(ostream &os) {
-    write_binary<uint8_t>(os, (nc.ToBinary() << 3) | GetSignature());
+    WriteBinary<uint8_t>(os, (nc.ToBinary() << 3) | GetSignature());
   }
 };
 
@@ -144,10 +144,10 @@ struct NCFCOperation : public Operation {
   virtual uint8_t GetSignature() = 0;
 
   virtual void Emit(ostream &os) {
-    write_binary<uint8_t>(os, (nc.ToBinary() << 3) | GetSignature());
-    write_binary<uint8_t>(os, fc.x + 30);
-    write_binary<uint8_t>(os, fc.y + 30);
-    write_binary<uint8_t>(os, fc.z + 30);
+    WriteBinary<uint8_t>(os, (nc.ToBinary() << 3) | GetSignature());
+    WriteBinary<uint8_t>(os, fc.x + 30);
+    WriteBinary<uint8_t>(os, fc.y + 30);
+    WriteBinary<uint8_t>(os, fc.z + 30);
   }
 };
 
@@ -187,8 +187,8 @@ struct SMove : public Operation {
   }
 
   virtual void Emit(ostream &os) {
-    write_binary<uint8_t>(os, (dir.ToBinary() << 4) | 0b0100);
-    write_binary<uint8_t>(os, dis + 15);
+    WriteBinary<uint8_t>(os, (dir.ToBinary() << 4) | 0b0100);
+    WriteBinary<uint8_t>(os, dis + 15);
   }
 };
 
@@ -212,8 +212,8 @@ struct LMove : public Operation {
   }
 
   virtual void Emit(ostream &os) {
-    write_binary<uint8_t>(os, (dir2.ToBinary() << 6) | (dir1.ToBinary() << 4) | 0b1100);
-    write_binary<uint8_t>(os, ((dis2 + 5) << 4) | (dis1 + 5));
+    WriteBinary<uint8_t>(os, (dir2.ToBinary() << 6) | (dir1.ToBinary() << 4) | 0b1100);
+    WriteBinary<uint8_t>(os, ((dis2 + 5) << 4) | (dis1 + 5));
   }
 };
 
@@ -243,8 +243,8 @@ struct Fission : Operation {
   }
 
   virtual void Emit(ostream &os) {
-    write_binary<uint8_t>(os, (nc.ToBinary() << 3) | 0b101);
-    write_binary<uint8_t>(os, m);
+    WriteBinary<uint8_t>(os, (nc.ToBinary() << 3) | 0b101);
+    WriteBinary<uint8_t>(os, m);
   }
 };
 
