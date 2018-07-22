@@ -8,4 +8,7 @@ score_run="$(cd "$(dirname "${BASH_SOURCE}")" && pwd)/score_run.php"
 
 mkdir -p "$TMPDIR/score_run"
 cd "$TMPDIR/score_run"
-php "${score_run}"
+
+for i in `seq 10`; do
+	php "${score_run}" || [[ "$?" = 1 ]]
+done

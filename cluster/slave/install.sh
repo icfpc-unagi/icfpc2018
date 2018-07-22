@@ -27,7 +27,7 @@ if ! id ninetan; then
 fi
 
 mkdir -p /home/ninetan/bin
-for program in ninetan-sync ninetan-daemon; do
+for program in ninetan-sync ninetan-score-daemon ninetan-execute-daemon; do
     cp "$(dirname "${BASH_SOURCE}")/${program}.sh" "/home/ninetan/bin/${program}"
     chmod +x "/home/ninetan/bin/${program}"
 done
@@ -63,7 +63,8 @@ systemctl daemon-reload
 SERVICES=(
     ninetan-docker
     ninetan-sync
-    ninetan-daemon\@{1..4}
+    ninetan-execute-daemon\@{1..4}
+    ninetan-score-daemon\@{1..2}
 )
 for service in "${SERVICES[@]}"; do
     systemctl enable "${service}"

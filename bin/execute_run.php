@@ -22,7 +22,8 @@ $run = Database::SelectRow('
 
 if (is_null($run)) {
 	INFO('Nothing to run.');
-	exit(0);
+    sleep(1);
+    exit();
 }
 
 INFO("Preparing files...");

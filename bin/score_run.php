@@ -29,7 +29,8 @@ $run = Database::SelectRow('
 
 if (is_null($run)) {
     INFO('Nothing to run.');
-    exit(0);
+    sleep(1);
+    exit();
 }
 
 INFO("Preparing files...");
@@ -62,9 +63,9 @@ if (preg_match('%^energy:(\d+)$%Usim', $stdout, $match)) {
 
 if ($dryrun) {
     print_r([
-    'run_score_stdout' => $stdout,
-    'run_score_stderr' => file_get_contents('stderr'),
-    'score' => $energy,
+        'run_score_stdout' => $stdout,
+        'run_score_stderr' => file_get_contents('stderr'),
+        'score' => $energy,
     ]);
     exit(0);
 }

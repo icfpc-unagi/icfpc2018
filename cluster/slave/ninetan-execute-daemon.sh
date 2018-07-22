@@ -14,10 +14,8 @@ run() {
 start_time="$(date +'%s')"
 while :; do
 	run 'execute_run --alsologtostderr'
-	run 'score_run --alsologtostderr'
-	sleep 5
 	current_time="$(date +'%s')"
-	if (( current_time > start_time + 30 )); then
+	if (( current_time > start_time + 60 )); then
 		break
 	fi
 done

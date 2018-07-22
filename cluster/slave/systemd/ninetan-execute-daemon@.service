@@ -1,10 +1,10 @@
 [Unit]
-Description=ninetan-daemon instance %i
+Description=ninetan-execute-daemon instance %i
 Requires=docker.service
 After=docker.service
 
 [Service]
-ExecStart=/home/ninetan/bin/ninetan-daemon
+ExecStart=/home/ninetan/bin/ninetan-execute-daemon
 Restart=always
 
 [Install]

@@ -1,0 +1,11 @@
+[Unit]
+Description=ninetan-score-daemon instance %i
+Requires=docker.service
+After=docker.service
+
+[Service]
+ExecStart=/usr/bin/docker run --rm -v /efs:/efs -v /github:/github:ro -v /dropbox:/dropbox:ro -v /home/ninetan/bin:/home/ninetan/bin unagi2018/master:master /home/ninetan/bin/ninetan-score-daemon
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
