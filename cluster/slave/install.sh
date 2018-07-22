@@ -63,8 +63,8 @@ systemctl daemon-reload
 SERVICES=(
     ninetan-docker
     ninetan-sync
-    ninetan-execute-daemon\@{1..16}
-    ninetan-score-daemon\@{1..4}
+    ninetan-execute-daemon\@{1..48}
+    ninetan-score-daemon\@{1..6}
 )
 systemctl enable "${SERVICES[@]}"
 systemctl start "${SERVICES[@]}"

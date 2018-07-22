@@ -23,7 +23,8 @@ if ($program_id) {
 Database::Command('
     CREATE TEMPORARY TABLE standing AS
     SELECT
-        program_id, problem_id, run_score, best_run_score, default_run_score,
+        run_id, program_id, problem_id,
+        run_score, best_run_score, default_run_score,
         (CASE WHEN best_run_score = default_run_score THEN
             FLOOR(LOG2(problem_resolution)) * 1000
         ELSE
@@ -243,7 +244,7 @@ foreach ($problems as $problem) {
                         $score = 'Disabled';
                     }
                 }
-                echo "<td><i>$score</i></td>";
+                echo "<td><a href=\"/run.php?run_id={$run['run_id']}\"><i>$score</i></a></td>";
                 continue;
             }
             echo '<td class="rank"></td>';
@@ -278,7 +279,14 @@ foreach ($problems as $problem) {
             }
             echo '<br>';
         }
-        echo "{$program['run_score']}<br>=dfl/$d<br>{$program['eval_score']}</td>";
+        if ($program['program_id'] >= 5000) {
+            echo "<a href=\"/run.php?run_id={$program['run_id']}\">";
+        }
+        echo "{$program['run_score']}";
+        if ($program['program_id'] >= 5000) {
+            echo "</a>";
+        }
+        echo "<br>=dfl/$d<br>{$program['eval_score']}</td>";
     }
     echo '</tr>';
 }
