@@ -150,9 +150,6 @@ impl BFS {
 
         while !self.que.is_empty() {
             let HeapState { c, s } = self.que.pop().unwrap();
-            if goal(s.p) {
-                return Some(s.p);
-            }
             if c != self.cost[s] {
                 continue;
             }
@@ -192,6 +189,10 @@ impl BFS {
                         &mut filled,
                     );
                 }
+            }
+
+            if goal(s.p) {
+                return Some(s.p);
             }
         }
 

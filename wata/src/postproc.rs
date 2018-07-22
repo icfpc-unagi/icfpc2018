@@ -4,7 +4,96 @@ use std::collections::*;
 use std::iter::FromIterator;
 
 
-pub fn fusion_all(matrix: &V3<bool>, positions: Vec<P>) -> Vec<Command> {
+pub fn fusion_all(matrix: &V3<bool>, mut positions: Vec<P>) -> Vec<Command> {
+    let mut return_cmds = Vec::new();
+    let r = matrix.len();
+    let mut bfs = bfs::BFS::new(r);
+    let filled_func = |p: P| { matrix[p] };
+    /*
+    {
+        let mut unreached_position_set = BTreeSet::from_iter(positions.iter());
+        let goal_func = |p: P| {
+            if unreached_position_set.remove(&p) {
+                eprintln!("Fusion BFS: {} / {} remaining", unreached_position_set.len(), positions.len());
+            }
+            false
+        }
+        bfs.bfs(filled_func, &vec![P::new(0, 0, 0)], goal_func);
+        assert_eq!(unreached_position_set.len(), 0);  // Otherwise, some positions were unreachable
+        eprintln!("Fusion BFS: done", unreached_position_set.len(), positions.len());
+    }
+    */
+
+    let mut occupied = InitV3::new(false, r);
+    loop {
+        occupied.init();
+        for &pos in positions.iter() {
+            occupied[pos] = true;
+        }
+
+        let n = positions.len();
+        let mut step_cmds = vec![Command::Wait; n];
+
+        let mut remove_bids = Vec::new();
+        {  // fusion
+            let mut waiting_pos = BTreeSet::from_iter(positions.iter().cloned());
+            while let Some((p1, p2)) = pop_near_pair(&mut waiting_pos) {
+                waiting_pos.remove(&p1);
+                waiting_pos.remove(&p2);
+                // these bid* are not true but positions are sorted by true bid
+                let bid1 = positions.iter().position(|&p| p == p1).unwrap();
+                let bid2 = positions.iter().position(|&p| p == p2).unwrap();
+                step_cmds[bid1] = Command::FusionP(p2 - p1);
+                step_cmds[bid2] = Command::FusionS(p1 - p2);
+                remove_bids.push(bid2);
+            }
+        }
+
+        eprintln!("{:?}", positions);
+        for (i, pos) in positions.iter_mut().enumerate() {
+            if step_cmds[i] != Command::Wait {
+                continue;
+            }
+            let cmd;
+            {
+                let mut pos_cands = BTreeMap::new();
+                for (new_pos, cmd) in one_step(*pos, |p: P| matrix[p] || occupied[p]) {
+                    pos_cands.insert(new_pos, cmd);
+                }
+                let goal_func = |p: P| { pos_cands.contains_key(&p) };
+                let new_pos = bfs.bfs(filled_func, &vec![P::new(0, 0, 0)], goal_func).unwrap();
+                cmd = pos_cands[&new_pos];
+                *pos = new_pos;
+            }
+            set_occupied(*pos, cmd, &mut occupied);
+            step_cmds[i] = cmd;
+        }
+
+        if step_cmds.iter().all(|&cmd| cmd == Command::Wait) {
+            break;
+        }
+
+        return_cmds.append(&mut step_cmds);
+
+        remove_bids.sort();
+        for bid in remove_bids.into_iter().rev() {
+            positions.remove(bid);
+        }
+    }
+    return_cmds.push(Command::Halt);
+
+    return_cmds
+}
+
+
+fn one_step<F: Fn(P) -> bool>(p: P, is_bad: F) -> Vec<(P, Command)> {
+    // always push Wait
+    // don't check p (occupied by self)
+    unimplemented!()
+}
+
+
+pub fn fusion_all_ver1(matrix: &V3<bool>, positions: Vec<P>) -> Vec<Command> {
     let mut return_cmds = Vec::new();
     let r = matrix.len();
     eprintln!("{:?}", r);
