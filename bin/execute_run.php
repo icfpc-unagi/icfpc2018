@@ -7,7 +7,7 @@ INFO('Fetching a run...');
 Database::Command('
 	UPDATE runs SET
 		run_id = (@run_id := run_id),
-		run_queue = NOW() + INTERVAL 700 SECOND
+		run_queue = NOW() + INTERVAL 2000 SECOND
 	WHERE run_queue < NOW() LIMIT 1');
 $run = Database::SelectRow('
 	SELECT
@@ -37,7 +37,7 @@ file_put_contents('wrapper', '
 ');
 
 INFO("Executing a run (run_id={$run['run_id']})...");
-$command = dirname(__FILE__) . '/timeout --timeout=600 bash ./wrapper';
+$command = dirname(__FILE__) . '/timeout --timeout=1800 bash ./wrapper';
 system($command);
 
 Database::Command('
