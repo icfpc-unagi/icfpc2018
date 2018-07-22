@@ -1,6 +1,5 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 set -e -u
 
-"$(dirname "${BASH_SOURCE}")/unagi-check"
-exec "${BASH_SOURCE}.sh" "$@"
+exec "${BASH_SOURCE}.$(uname)" "$@"
