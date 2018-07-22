@@ -2,7 +2,7 @@
 # Runs solver.
 
 source "$(dirname "${BASH_SOURCE}")/imosh" || exit 1
-DEFINE_enum --values=chokudai,wata solver chokudai 'Solver to choose.'
+DEFINE_string solver chokudai 'Solver to choose.'
 DEFINE_string version '' 'Version.'
 DEFINE_bool binary false 'Output as binary.'
 DEFINE_string --alias=o output '' 'Output file.'
@@ -51,6 +51,11 @@ run_solver() {
 			LOG INFO "Running version ${version}."
 		fi
 		mono "$(dirname "${BASH_SOURCE}")/chokudai-solver/${version}.exe" "${args[@]}"
+		return
+	fi
+	solver="$(dirname "${BASH_SOURCE}")/solvers/${FLAGS_solver}"
+	if [ -f "${solver}" ]; then
+		"${solver}" "${args[@]}"
 		return
 	fi
 	LOG FATAL "Unknown solver: ${FLAGS_solver}"
