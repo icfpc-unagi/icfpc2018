@@ -3,6 +3,9 @@
 pub mod strategy_small;
 pub mod strategy_large;
 
+mod structs;
+mod harmonizer;
+
 use super::{Model, Command};
 
 pub fn destroy(model: Model) -> Vec<Command> {

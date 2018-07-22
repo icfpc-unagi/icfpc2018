@@ -15,4 +15,5 @@ fn main() {
     let model = wata::read(&file);
     let commands = destroy(model);
     emit(commands);
+    eprintln!("{}", file);
 }

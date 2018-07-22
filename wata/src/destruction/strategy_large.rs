@@ -29,71 +29,16 @@ use std::collections::*;
 use super::super::bfs::*;
 use super::super::*;
 
-#[derive(Copy, Clone, Debug)]
-struct Bot {
-    bid: usize,
-    p: P,
-}
+use super::structs::{Bot, CommandSet};
+use super::harmonizer::Harmonizer;
 
-//
-// Commands invoked in a single time step by the bots
-//
-
-#[derive(Clone, Debug)]
-struct CommandSet {
-    commands: Vec<Command>,
-}
-
-impl CommandSet {
-    fn new(n_bots: usize) -> CommandSet {
-        CommandSet {
-            commands: vec![Command::Wait; n_bots],
-        }
-    }
-
-    fn new_uniform(n_bots: usize, command: Command) -> CommandSet {
-        CommandSet {
-            commands: vec![command; n_bots],
-        }
-    }
-
-    fn is_all_wait(&self) -> bool {
-        return self.commands.iter().all(|&cmd| cmd == Command::Wait);
-    }
-
-    fn is_all_busy(&self) -> bool {
-        return self.commands.iter().all(|&cmd| cmd != Command::Wait);
-    }
-
-    fn gvoid_below_layer(&mut self, bots: [&Bot; 4]) {
-        // TODO: 常に真下ではなく斜めを使ってわずかに稼ぐか？（優先度低い）
-        let nd = P::new(0, -1, 0);
-
-        for i in 0..4 {
-            let b1 = bots[i];
-            let b2 = bots[i ^ 3];
-            assert_eq!(self.commands[b1.bid], Command::Wait);
-            self.commands[b1.bid] = Command::GVoid(nd, b2.p - b1.p)
-        }
-    }
-
-    fn flip_by_somebody(&mut self) {
-        for i in 0..self.commands.len() {
-            if self.commands[i] == Command::Wait {
-                self.commands[i] = Command::Flip;
-                return;
-            }
-        }
-        panic!();
-    }
-}
-
-pub struct App {
+struct App {
     model: Model,
     bots: Vec<Bot>,
     fission_commands: Vec<Command>,
     fusion_commands: Vec<Command>,
     command_sets: Vec<CommandSet>,
+    harmonizer: Harmonizer,
 }
 
 const CELL_LENGTH: i32 = 30;
@@ -112,6 +57,7 @@ impl App {
             fission_commands: vec![],
             fusion_commands: vec![],
             command_sets: vec![],
+            harmonizer: Harmonizer::new(model),
         }
     }
 
@@ -124,18 +70,22 @@ impl App {
 
         for parity_x in 0..2 {
             for parity_z in 0..2 {
+                let current_step = self.command_sets.len();
+
                 let mut cs = CommandSet::new(self.bots.len());
 
                 let mut ix = parity_x;
                 while ix + 1 < n_bots_x {
                     let mut iz = parity_z;
                     while iz + 1 < n_bots_z {
-                        cs.gvoid_below_layer([
+                        let bot4 = [
                             &self.bots[bot_grid[ix + 0][iz + 0]],
                             &self.bots[bot_grid[ix + 0][iz + 1]],
                             &self.bots[bot_grid[ix + 1][iz + 0]],
                             &self.bots[bot_grid[ix + 1][iz + 1]],
-                        ]);
+                        ];
+                        cs.gvoid_below_layer(&bot4);
+                        self.harmonizer.gvoid_below_layer(&bot4, current_step);
                         iz += 2;
                     }
                     ix += 2;
@@ -305,6 +255,64 @@ impl App {
         }
     }
 
+    fn harmonize_all(&mut self) {
+        // 常時harmonizeオン
+        let n_bots = self.bots.len();
+
+        // Turn on harmonics
+        if self.command_sets.first_mut().unwrap().is_all_busy() {
+            self.command_sets.insert(0, CommandSet::new(n_bots));
+        }
+        self.command_sets.first_mut().unwrap().flip_by_somebody();
+
+        // Turn off harmonics
+        if self.command_sets.last_mut().unwrap().is_all_busy() {
+            self.command_sets.push(CommandSet::new(n_bots));
+        }
+        self.command_sets.last_mut().unwrap().flip_by_somebody();
+    }
+
+    fn harmonize(&mut self) {
+        // 賢いやつ
+        let n_bots = self.bots.len();
+        let n_steps = self.command_sets.len();
+        let harmony_required = self.harmonizer.compute_harmony_requirement(n_steps);
+
+        let mut index: usize = 0;
+        for step in 0..n_steps {
+            let crr_harmony = harmony_required[step];
+            if step == 0 {
+                assert_eq!(crr_harmony, false)
+            }
+
+            let nxt_harmony = if step + 1 < n_steps {
+                harmony_required[step + 1]
+            } else {
+                false
+            };
+
+            if crr_harmony != nxt_harmony {
+                eprintln!("Harmony flip: {} ({})", nxt_harmony, step);
+
+                // Need flip!
+                if self.command_sets[index].is_all_busy() {
+                    self.command_sets.insert(index, CommandSet::new(n_bots));
+                    self.command_sets[index].flip_by_somebody();
+                    index += 1;
+                } else {
+                    self.command_sets[index].flip_by_somebody();
+                }
+            }
+            index += 1;
+        }
+
+        eprintln!(
+            "Harmony required steps: {} / {}",
+            harmony_required.iter().filter(|b| **b).count(),
+            harmony_required.len()
+        );
+    }
+
     //
     // Main
     //
@@ -373,17 +381,7 @@ impl App {
             ix += 1;
         }
 
-        // Turn on harmonics
-        if self.command_sets.first_mut().unwrap().is_all_busy() {
-            self.command_sets.insert(0, CommandSet::new(n_bots));
-        }
-        self.command_sets.first_mut().unwrap().flip_by_somebody();
-
-        // Turn off harmonics
-        if self.command_sets.last_mut().unwrap().is_all_busy() {
-            self.command_sets.push(CommandSet::new(n_bots));
-        }
-        self.command_sets.last_mut().unwrap().flip_by_somebody();
+        self.harmonize();
 
         for (i, command_set) in self.command_sets.iter().enumerate() {
             // println!("[ STEP {} ]", i);
