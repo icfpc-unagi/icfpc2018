@@ -174,6 +174,7 @@ fn destruct_support(target: &V3<bool>, filled: &mut V3<bool>, bots: &mut Vec<Bot
 	let mut t = bots[0].commands.len();
 	let mut occupied = InitV3::new(false, r);
 	let mut bpos = InitV3::new(!0, r);
+	let mut ws = InitV3::new(false, r);
 	let mut bfs = BFS::new(r);
 	while rem > 0 {
 		eprintln!("rem: {}", rem);
@@ -195,6 +196,9 @@ fn destruct_support(target: &V3<bool>, filled: &mut V3<bool>, bots: &mut Vec<Bot
 					if let Some((i, j)) = working[b.bid] {
 						bs[i][j] = None;
 						working[b.bid] = None;
+						if supports[i][0] == supports[i][1] {
+							bs[i][j] = None;
+						}
 						b.commands.truncate(t);
 					} else {
 						assert!(false);
@@ -210,8 +214,13 @@ fn destruct_support(target: &V3<bool>, filled: &mut V3<bool>, bots: &mut Vec<Bot
 				for j in 0..2 {
 					if !free.is_empty() && bs[i][j].is_none() {
 						bpos.init();
+						ws.init();
+						for b in bots.iter() {
+							ws[b.p] = true;
+						}
 						for &bid in &free {
 							bpos[bots[bid].p] = bid;
+							ws[bots[bid].p] = false;
 						}
 						let mut starts = vec![];
 						for t in supports[i][j].near(r) {
@@ -220,29 +229,38 @@ fn destruct_support(target: &V3<bool>, filled: &mut V3<bool>, bots: &mut Vec<Bot
 							}
 						}
 						bfs.clear();
-						if let Some(s) = bfs.bfs(|p| filled[p], &starts, |p| bpos[p] != !0) {
+						if let Some(s) = bfs.bfs(|p| filled[p] || ws[p], &starts, |p| bpos[p] != !0) {
 							let bid = bpos[s];
 							assert!(bid != !0);
 							free.remove(&bid);
 							bs[i][j] = Some(bid);
 							working[bid] = Some((i, j));
 							bots[bid].commands.extend(bfs.restore_backward(s));
+							if supports[i][0] == supports[i][1] {
+								bs[i][j] = Some(bid);
+							}
 							break;
 						}
 					}
 				}
 			}
 		}
+		eprintln!("{:?}", working);
 		for i in 0..bs.len() {
 			if finished[i] {
 				continue;
 			}
 			match bs[i] {
 				[Some(a), Some(b)] if bots[a].commands.len() == t && bots[b].commands.len() == t => {
-					let ca = Command::GVoid(supports[i][0] - bots[a].p, supports[i][1] - supports[i][0]);
-					bots[a].commands.push(ca);
-					let cb = Command::GVoid(supports[i][1] - bots[b].p, supports[i][0] - supports[i][1]);
-					bots[b].commands.push(cb);
+					if supports[i][0] == supports[i][1] {
+						let ca = Command::Void(supports[i][0] - bots[a].p);
+						bots[a].commands.push(ca);
+					} else {
+						let ca = Command::GVoid(supports[i][0] - bots[a].p, supports[i][1] - supports[i][0]);
+						bots[a].commands.push(ca);
+						let cb = Command::GVoid(supports[i][1] - bots[b].p, supports[i][0] - supports[i][1]);
+						bots[b].commands.push(cb);
+					}
 					finished[i] = true;
 					for y in supports[i][0].y..=supports[i][1].y {
 						let mut p = supports[i][0];
@@ -269,6 +287,9 @@ fn destruct_support(target: &V3<bool>, filled: &mut V3<bool>, bots: &mut Vec<Bot
 					if let Some((i, j)) = working[b.bid] {
 						bs[i][j] = None;
 						working[b.bid] = None;
+						if supports[i][0] == supports[i][1] {
+							bs[i][j] = None;
+						}
 						b.commands.truncate(t);
 						b.commands.push(Command::Wait);
 					} else {
@@ -651,8 +672,7 @@ fn solve_bottom_up(target: &V3<bool>, nbots: usize) -> (i64, Vec<Command>) {
 		}
 	}
 	if FISSION {
-		// TODO: target2 -> target
-		commands.extend(postproc::fusion_all(&target2, bots.iter().map(|b| b.p).collect()));
+		commands.extend(postproc::fusion_all(&target, bots.iter().map(|b| b.p).collect()));
 	}
 	(energy, commands)
 }
