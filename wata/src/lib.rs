@@ -272,24 +272,33 @@ pub fn read(path: &str) -> Model {
 
 pub fn fission_to(filled: &V3<bool>, to: &Vec<P>) -> (Vec<usize>, Vec<Command>)  {
     let fusion_cmds = postproc::fusion_all(filled, to.clone());
-    let mut sim = sim::SimState::from_positions(filled.clone(), to.clone());
     let mut log_bots = Vec::new();
     let mut log_cmds = Vec::new();
+    {
+        let mut sim = sim::SimState::from_positions(filled.clone(), to.clone());
 
-    let mut ip = 0;
-    while ip < fusion_cmds.len() {
-        log_bots.push(sim.bots.clone());
-        let n = sim.bots.len();
-        let mut cmds_step = Vec::new();
-        for i in ip..ip+n {
-            cmds_step.push(fusion_cmds[i]);
+        let mut ip = 0;
+        while ip < fusion_cmds.len() {
+            log_bots.push(sim.bots.clone());
+            let n = sim.bots.len();
+            let mut cmds_step = Vec::new();
+            for i in ip..ip+n {
+                cmds_step.push(fusion_cmds[i]);
+            }
+            log_cmds.push(cmds_step.clone());
+            sim.step(cmds_step);
+            ip += n;
         }
-        log_cmds.push(cmds_step.clone());
-        sim.step(cmds_step);
-        ip += n;
+        assert_eq!(ip, fusion_cmds.len());
+        assert_eq!(sim.bots.len(), 0);
+        let last_cmds = log_cmds.pop();
+        assert_eq!(last_cmds, Some(vec![Command::Halt]));
     }
-    assert_eq!(ip, fusion_cmds.len());
-    log_bots.push(sim.bots.clone());
+
+    let mut bots: Vec<_> = log_bots.pop().unwrap().into_iter().collect();
+
+    let mut rename = std::collections::BTreeMap::new();
+    rename.insert(&bots[0].bid, 1);
 	unimplemented!()
 }
 

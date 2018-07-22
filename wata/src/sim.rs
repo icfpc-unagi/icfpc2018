@@ -6,9 +6,9 @@ use std::collections::BTreeSet;
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Bot {
-    bid: usize,  // should be sorted by (unique) bid
+    pub bid: usize,  // should be sorted by (unique) bid
     pub p: P,
-    seeds: BTreeSet<usize>,
+    pub seeds: BTreeSet<usize>,
 }
 
 impl Bot {
@@ -88,6 +88,9 @@ impl SimState {
         let mut pbots = BTreeMap::new();
         let mut sbots = BTreeMap::new();
         for (mut bot, cmd) in bots.into_iter().zip(cmds) {
+            if cmd == Halt {
+                continue;
+            }
             if let FusionP(nd) = cmd {
                 pbots.insert((bot.p, bot.p + nd), bot);
                 continue;
