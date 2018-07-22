@@ -3,11 +3,17 @@
 ob_start();
 
 echo '<h2>Problems</h2>';
-
+echo '<style>.problem_card {
+	position:absolute;
+border: 3px solid #000; border-radius: 10px;
+left: -3px; top: -3px; cursor:pointer;
+}
+.problem_card:hover { background:rgba(128, 128, 255, 0.3); border-color: #00f; }</style>';
 echo '<center>';
 
 $problems = Database::Select(
-	'SELECT problem_name, problem_resolution, problem_has_source, problem_has_target FROM problems WHERE problem_name LIKE "F%"');
+	'SELECT problem_id, problem_name, problem_resolution, problem_has_source, problem_has_target FROM problems WHERE problem_name LIKE "F%"
+	 ORDER BY problem_name');
 
 foreach ($problems as $problem) {
 	echo '<div style="display:inline-block; margin: 5px; border: 3px solid #000; border-radius: 10px; position: relative;"><table style="height:128px; border-collapse: collapse; padding: 0; margin: 0;"><tr>';
@@ -37,7 +43,7 @@ foreach ($problems as $problem) {
 		$mode = '🏢';
 	}
 
-	echo '<div style="position:absolute;left:0;top:0;width:' . ($width * 128) . 'px;color:#fff;text-align:center;font-size:90%;">' . $mode . $problem['problem_name'] . ' (R:' . $problem['problem_resolution'] . ')</div>';
+	echo '<div style="width:' . ($width * 128) . 'px;color:#fff;text-align:center;font-size:90%;height:128px;pointer:cursor;" class="problem_card" onclick="location.href=\'/problem.php?problem_id=' . $problem['problem_id'] . '\'">' . $mode . $problem['problem_name'] . ' (R:' . $problem['problem_resolution'] . ')</div>';
 	echo '</div>';
 }
 
