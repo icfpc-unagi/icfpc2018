@@ -248,7 +248,7 @@ impl<T: Clone> IndexMut<P> for InitV3<T> {
 	}
 }
 
-pub const SEEDS: usize = 20;
+// pub const SEEDS: usize = 20;
 
 pub fn read(path: &str) -> Model {
 	let file = std::fs::File::open(path).unwrap();

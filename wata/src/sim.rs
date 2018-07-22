@@ -12,11 +12,11 @@ pub struct Bot {
 }
 
 impl Bot {
-    fn new() -> Bot {
+    fn new(n_seeds: usize) -> Bot {
         Bot {
             bid: 1,
             p: P::new(0, 0, 0),
-            seeds: (2..=20).collect(),
+            seeds: (2..=n_seeds).collect(),
         }
     }
 
@@ -59,8 +59,8 @@ pub struct SimState {
 }
 
 impl SimState {
-    pub fn new(r: usize) -> SimState {
-        let bot = Bot::new();
+    pub fn new(r: usize, n_seeds: usize) -> SimState {
+        let bot = Bot::new(n_seeds);
         let mut bots = BTreeSet::new();
         bots.insert(bot);
         SimState {
@@ -111,10 +111,5 @@ impl SimState {
             pbot.fusion(sbot);
             self.bots.insert(pbot);
         }
-    }
-
-    pub fn step_approx(&mut self, cmds: Vec<Command>) -> Vec<Command> {
-        // returns approx'ed cmds
-        unimplemented!()
     }
 }

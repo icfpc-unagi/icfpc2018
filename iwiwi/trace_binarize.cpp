@@ -26,7 +26,7 @@ using namespace std;
   }
 
 template<typename T>
-void write_binary(std::ostream &os, const T &t) {
+void WriteBinary(std::ostream &os, const T &t) {
   CHECK_PERROR(os.write((char*)&t, sizeof(T)));
 }
 
@@ -69,6 +69,24 @@ struct NearCoordinates {
   }
 };
 
+struct FarCoordinates {
+  int x, y, z;
+
+  static FarCoordinates Parse(const vector<string> &tokens, size_t token_offset) {
+    FarCoordinates a;
+    a.x = stoi(tokens[token_offset + 0]);
+    a.y = stoi(tokens[token_offset + 1]);
+    a.z = stoi(tokens[token_offset + 2]);
+    CHECK(abs(a.x) + abs(a.y) + abs(a.z) >= 1);
+    CHECK(max(max(abs(a.x), abs(a.y)), abs(a.z)) <= 30);
+    return a;
+  }
+
+  uint8_t ToBinary() {
+    return (x + 1) * 9 + (y + 1) * 3 + (z + 1);
+  }
+};
+
 //
 // Base operation classes
 //
@@ -88,7 +106,7 @@ struct NullaryOperation : public Operation {
   virtual uint8_t GetSignature() = 0;
 
   virtual void Emit(ostream &os) {
-    write_binary<uint8_t>(os, GetSignature());
+    WriteBinary<uint8_t>(os, GetSignature());
   }
 };
 
@@ -106,7 +124,30 @@ struct NCOnlyOperation : public Operation {
   virtual uint8_t GetSignature() = 0;
 
   virtual void Emit(ostream &os) {
-    write_binary<uint8_t>(os, (nc.ToBinary() << 3) | GetSignature());
+    WriteBinary<uint8_t>(os, (nc.ToBinary() << 3) | GetSignature());
+  }
+};
+
+template<class Derived>
+struct NCFCOperation : public Operation {
+  NearCoordinates nc;
+  FarCoordinates fc;
+
+  static Derived Parse(const vector<string> &tokens) {
+    CHECK(tokens.size() == 7);
+    Derived a;
+    a.nc = NearCoordinates::Parse(tokens, 1);
+    a.fc = FarCoordinates::Parse(tokens, 4);
+    return a;
+  }
+
+  virtual uint8_t GetSignature() = 0;
+
+  virtual void Emit(ostream &os) {
+    WriteBinary<uint8_t>(os, (nc.ToBinary() << 3) | GetSignature());
+    WriteBinary<uint8_t>(os, fc.x + 30);
+    WriteBinary<uint8_t>(os, fc.y + 30);
+    WriteBinary<uint8_t>(os, fc.z + 30);
   }
 };
 
@@ -146,8 +187,8 @@ struct SMove : public Operation {
   }
 
   virtual void Emit(ostream &os) {
-    write_binary<uint8_t>(os, (dir.ToBinary() << 4) | 0b0100);
-    write_binary<uint8_t>(os, dis + 15);
+    WriteBinary<uint8_t>(os, (dir.ToBinary() << 4) | 0b0100);
+    WriteBinary<uint8_t>(os, dis + 15);
   }
 };
 
@@ -171,8 +212,8 @@ struct LMove : public Operation {
   }
 
   virtual void Emit(ostream &os) {
-    write_binary<uint8_t>(os, (dir2.ToBinary() << 6) | (dir1.ToBinary() << 4) | 0b1100);
-    write_binary<uint8_t>(os, ((dis2 + 5) << 4) | (dis1 + 5));
+    WriteBinary<uint8_t>(os, (dir2.ToBinary() << 6) | (dir1.ToBinary() << 4) | 0b1100);
+    WriteBinary<uint8_t>(os, ((dis2 + 5) << 4) | (dis1 + 5));
   }
 };
 
@@ -202,8 +243,8 @@ struct Fission : Operation {
   }
 
   virtual void Emit(ostream &os) {
-    write_binary<uint8_t>(os, (nc.ToBinary() << 3) | 0b101);
-    write_binary<uint8_t>(os, m);
+    WriteBinary<uint8_t>(os, (nc.ToBinary() << 3) | 0b101);
+    WriteBinary<uint8_t>(os, m);
   }
 };
 
@@ -212,6 +253,25 @@ struct Fill : public NCOnlyOperation<Fill> {
     return 0b011;
   }
 };
+
+struct Void : public NCOnlyOperation<Void> {
+  virtual uint8_t GetSignature() {
+    return 0b010;
+  }
+};
+
+struct GFill : public NCFCOperation<GFill> {
+  virtual uint8_t GetSignature() {
+    return 0b001;
+  }
+};
+
+struct GVoid : public NCFCOperation<GVoid> {
+  virtual uint8_t GetSignature() {
+    return 0b000;
+  }
+};
+
 
 //
 // Main
@@ -225,8 +285,11 @@ template<class T> vector<T> Split(const string &str) {
   return res;
 }
 
-Operation *ParseOperation(const string &line, size_t lineno) {
-  if (line.length() >= 1 && line[0] == '#') return nullptr;
+Operation *ParseOperation(string line, size_t lineno) {
+  auto pos = line.find('#');
+  if (pos != std::string::npos) {
+    line = line.substr(0, pos);
+  }
 
   vector<string> tokens = Split<string>(line);
   if (tokens.size() == 0) return nullptr;
@@ -252,6 +315,12 @@ Operation *ParseOperation(const string &line, size_t lineno) {
     return new Fission(Fission::Parse(tokens));
   } else if (op == "fill") {
     return new Fill(Fill::Parse(tokens));
+  } else if (op == "void") {
+    return new Void(Void::Parse(tokens));
+  } else if (op == "gfill") {
+    return new GFill(GFill::Parse(tokens));
+  } else if (op == "gvoid") {
+    return new GVoid(GVoid::Parse(tokens));
   } else {
     cerr << "Error at Line " << lineno << ": Unknown operation: " << op << endl;
   }
