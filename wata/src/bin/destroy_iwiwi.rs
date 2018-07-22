@@ -8,10 +8,10 @@ extern crate wata;
     - Harmonics: とりあえず常時on
     - bot: 6 * 6 固定
     - session: 1発
-
-Backlog:
 - まずは何でも良いから全部破壊する（全R）
     - マルチセッション
+
+Backlog:
 - bounding boxを真面目にやる
 - Harmonicsを必要なときだけにする
 - 方向: 全通り試す
@@ -24,10 +24,10 @@ Backlog:
 - flip
 */
 
-use wata::*;
-use wata::bfs::*;
-use std::cmp::{min, max};
+use std::cmp::{max, min};
 use std::collections::*;
+use wata::bfs::*;
+use wata::*;
 
 #[derive(Clone, Debug)]
 struct Solution {
@@ -53,13 +53,13 @@ struct CommandSet {
 impl CommandSet {
     fn new(n_bots: usize) -> CommandSet {
         CommandSet {
-            commands: vec![Command::Wait; n_bots]
+            commands: vec![Command::Wait; n_bots],
         }
     }
 
     fn new_uniform(n_bots: usize, command: Command) -> CommandSet {
         CommandSet {
-            commands: vec![command; n_bots]
+            commands: vec![command; n_bots],
         }
     }
 
@@ -79,10 +79,7 @@ impl CommandSet {
             let b1 = bots[i];
             let b2 = bots[i ^ 3];
             assert_eq!(self.commands[b1.bid], Command::Wait);
-            self.commands[b1.bid] = Command::GVoid(
-                nd,
-                b2.p - b1.p
-            )
+            self.commands[b1.bid] = Command::GVoid(nd, b2.p - b1.p)
         }
     }
 
@@ -117,12 +114,22 @@ impl App {
     fn new(model: &Model) -> App {
         App {
             model: model.clone(),
-            bots: vec![Bot { bid: 0, p: P::new(0, 0, 0)}; 1],
+            bots: vec![
+                Bot {
+                    bid: 0,
+                    p: P::new(0, 0, 0)
+                };
+                1
+            ],
             fission_commands: vec![],
             fusion_commands: vec![],
             command_sets: vec![],
         }
     }
+
+    //
+    // Session (= x and z coordinates are fixed, destroy along y axis)
+    //
 
     fn destroy_layer(&mut self, bot_grid: &Vec<Vec<usize>>) {
         let (n_bots_x, n_bots_z) = (bot_grid.len(), bot_grid[0].len());
@@ -157,16 +164,16 @@ impl App {
 
     fn move_down(&mut self) {
         let dif = P::new(0, -1, 0);
-        self.command_sets.push(
-            CommandSet::new_uniform(
-                self.bots.len(), Command::SMove(dif)));
+        self.command_sets.push(CommandSet::new_uniform(
+            self.bots.len(),
+            Command::SMove(dif),
+        ));
         for bot in self.bots.iter_mut() {
             bot.p += dif;
         }
     }
 
     fn destroy_session(&mut self, bot_grid: &Vec<Vec<usize>>) {
-        // Session: x and z coordinates are fixed. Destroy along y axis.
         let n_bots_x = bot_grid.len();
         let n_bots_z = bot_grid[0].len();
 
@@ -175,8 +182,14 @@ impl App {
             for iz in 0..n_bots_z {
                 let p = &self.bots[bot_grid[ix][iz]].p;
                 assert_eq!(p.y, p0.y);
-                assert_eq!(p.x, min(p0.x + (ix as i32) * CELL_LENGTH, (self.model.r - 1) as i32));
-                assert_eq!(p.z, min(p0.z + (iz as i32) * CELL_LENGTH, (self.model.r - 1) as i32));
+                assert_eq!(
+                    p.x,
+                    min(p0.x + (ix as i32) * CELL_LENGTH, (self.model.r - 1) as i32)
+                );
+                assert_eq!(
+                    p.z,
+                    min(p0.z + (iz as i32) * CELL_LENGTH, (self.model.r - 1) as i32)
+                );
             }
         }
 
@@ -195,38 +208,54 @@ impl App {
         }
     }
 
+    //
+    // Pre and post processing
+    //
+
     fn fission(&mut self, n_bots_x: usize, n_bots_z: usize) -> Vec<Vec<usize>> {
         let r = self.model.r as i32;
         let n_bots = n_bots_x * n_bots_z;
 
         // Positions
-        let p0 = P::new(0, (r as i32) - 1, 0);  // TODO: better starting point
-        let ps: Vec<P> = (0..n_bots).map(|i| {
-            let ix = (i / n_bots_z) as i32;
-            let iz = (i % n_bots_z) as i32;
-            p0 + P::new(min(CELL_LENGTH * ix, r - 1), 0, min(CELL_LENGTH * iz, r - 1))
-        }).collect();
+        let p0 = P::new(0, (r as i32) - 1, 0); // TODO: better starting point
+        let ps: Vec<P> = (0..n_bots)
+            .map(|i| {
+                let ix = (i / n_bots_z) as i32;
+                let iz = (i % n_bots_z) as i32;
+                p0 + P::new(
+                    min(CELL_LENGTH * ix, r - 1),
+                    0,
+                    min(CELL_LENGTH * iz, r - 1),
+                )
+            })
+            .collect();
 
         let (ord, cmds) = fission_to(&self.model.filled, &ps);
         self.fission_commands = cmds;
         // let ord: Vec<usize> = (1..(n_bots + 1)).collect();
         eprintln!("{:?}", ord);
 
-        self.bots = (0..n_bots).map(|bid| {
-            Bot {
-                bid,
-                p: P::new(-1, -1, -1)  // Dummy
-            }
-        }).collect();
+        self.bots = (0..n_bots)
+            .map(|bid| {
+                Bot {
+                    bid,
+                    p: P::new(-1, -1, -1), // Dummy
+                }
+            })
+            .collect();
         for (&i, &p) in ord.iter().zip(ps.iter()) {
-            self.bots[i - 1].p = p;  // ord is 1-indexed
+            self.bots[i - 1].p = p; // ord is 1-indexed
         }
 
-        let bot_grid = (0..n_bots_x).map(|ix| {
-            (0..n_bots_z).map(|iz| {
-                ord[ix * n_bots_z + iz] - 1  // ord is 1-indexed
-            }).collect()
-        }).collect();
+        let bot_grid = (0..n_bots_x)
+            .map(|ix| {
+                (0..n_bots_z)
+                    .map(|iz| {
+                        ord[ix * n_bots_z + iz] - 1 // ord is 1-indexed
+                    })
+                    .collect()
+            })
+            .collect();
         return bot_grid;
     }
 
@@ -234,27 +263,15 @@ impl App {
         let r = self.model.r;
         self.fusion_commands = postproc::fusion_all(
             &mat![false; r; r; r],
-            self.bots.iter().map(|b| {b.p}).collect()
+            self.bots.iter().map(|b| b.p).collect(),
         )
-    }
-
-    fn emit(&self) {
-        for command in self.fission_commands.iter() {
-            println!("{}", command.to_string());
-        }
-        for command_set in self.command_sets.iter() {
-            command_set.emit();
-        }
-        for command in self.fusion_commands.iter() {
-            println!("{}", command.to_string());
-        }
     }
 
     fn move_to_next_session(&mut self, mut p_diff: P) {
         let zero = P::new(0, 0, 0);
 
-        let minmax5 = |x| { max(min(x, 5), -5) };
-        let minmax15 = |x| { max(min(x, 15), -15) };
+        let minmax5 = |x| max(min(x, 5), -5);
+        let minmax15 = |x| max(min(x, 15), -15);
 
         eprintln!("{:?}", p_diff);
         while p_diff != zero {
@@ -295,7 +312,24 @@ impl App {
             }
 
             eprintln!("{:?} {:?} {:?}", p_move, p_diff, cmd);
-            self.command_sets.push(CommandSet::new_uniform(self.bots.len(), cmd));
+            self.command_sets
+                .push(CommandSet::new_uniform(self.bots.len(), cmd));
+        }
+    }
+
+    //
+    // Main
+    //
+
+    fn emit(&self) {
+        for command in self.fission_commands.iter() {
+            println!("{}", command.to_string());
+        }
+        for command_set in self.command_sets.iter() {
+            command_set.emit();
+        }
+        for command in self.fusion_commands.iter() {
+            println!("{}", command.to_string());
         }
     }
 
@@ -308,7 +342,10 @@ impl App {
         let n_bots_z = n_bots_x;
         let n_bots = n_bots_x * n_bots_z;
         let bot_grid = self.fission(n_bots_x, n_bots_z);
-        eprintln!("R: {}, Bot grid: {} X {} ({:?})", r, n_bots_x, n_bots_z, bot_grid);
+        eprintln!(
+            "R: {}, Bot grid: {} X {} ({:?})",
+            r, n_bots_x, n_bots_z, bot_grid
+        );
 
         let session_x_size = min(r as i32, ((n_bots_x - 1) as i32) * CELL_LENGTH + 1);
         let session_z_size = min(r as i32, ((n_bots_z - 1) as i32) * CELL_LENGTH + 1);
@@ -324,12 +361,14 @@ impl App {
                 let session_z_offset = min(iz * session_z_size, r - session_z_size);
 
                 if (session_x_offset, session_z_offset) != (0, 0) {
-
                     let p0_crr = self.bots[bot_grid[0][0]].p;
                     let p0_nxt = P::new(session_x_offset, r - 1, session_z_offset);
                     // TODO: r - 1じゃなくてちゃんとy座標をする
 
-                    eprintln!("r={}, session_x_size={}, {}", r, session_x_size, session_z_size);
+                    eprintln!(
+                        "r={}, session_x_size={}, {}",
+                        r, session_x_size, session_z_size
+                    );
                     eprintln!("Session: {:?} -> {:?}", p0_crr, p0_nxt);
 
                     self.move_to_next_session(p0_nxt - p0_crr);
@@ -366,7 +405,7 @@ impl App {
 }
 
 fn main() {
-    assert_eq!(std::env::args().nth(1).unwrap(), "");  // I am destroy-only solver
+    assert_eq!(std::env::args().nth(1).unwrap(), ""); // I am destroy-only solver
     let file = std::env::args().nth(2).unwrap();
     let model = wata::read(&file);
     let mut app = App::new(&model);
