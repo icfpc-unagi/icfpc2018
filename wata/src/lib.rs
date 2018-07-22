@@ -351,3 +351,5 @@ pub use command::Command;
 pub mod sim;
 pub mod postproc;
 pub mod destruction;
+pub mod occupy;
+pub use occupy::*;

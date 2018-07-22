@@ -17,13 +17,19 @@ $problem_id = Database::SelectCell('SELECT problem_id FROM problems WHERE proble
 
 echo "Problem ID: " . $problem_id . "\n";
 
-$run_stdout = "\x1f\x8b\x08\x00" . gzcompress(file_get_contents($nbt_file));
+if (Database::SelectCell('SELECT run_stdout IS NOT NULL FROM runs WHERE program_id = 9000 AND problem_id = {problem_id}', ['problem_id' => $problem_id])) {
+	INFO("Data exists");
+	exit(0);
+}
+
+$data = file_get_contents($nbt_file);
+echo "Data size: " . strlen($data) . "\n";
 
 Database::Command('
 	REPLACE INTO runs SET
 		program_id = 9000,
 		problem_id = {problem_id},
 		run_score_queue = NOW(),
-		run_stdout = UNCOMPRESS({run_stdout})',
+		run_stdout = {run_stdout}',
 	['problem_id' => $problem_id,
-	 'run_stdout' => $run_stdout]);
+	 'run_stdout' => $data]);

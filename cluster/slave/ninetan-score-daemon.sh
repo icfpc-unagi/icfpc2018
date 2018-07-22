@@ -1,8 +1,9 @@
 #!/bin/bash
 
+mount -t tmpfs tmpfs /home/unagi/icfpc2018-master
+
 sudo --login --user unagi bash -c '
-    rm -rf ~/icfpc2018-master;
-    cp -Ra /github ~/icfpc2018-master;
+    cp -R /github/* ~/icfpc2018-master/;
     touch ~/icfpc2018-master/.pull;'
 
 start_time="$(date +'%s')"
