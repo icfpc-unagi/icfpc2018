@@ -132,11 +132,20 @@ impl BFS {
 
     pub fn bfs<G: FnMut(P) -> bool, H: FnMut(P) -> bool>(
         &mut self,
+        filled: G,
+        starts: &Vec<P>,
+        goal: H,
+    ) -> Option<P> {
+        assert_eq!(self.touched.len(), 0); // To confirm that the workspace is clean
+        self.bfs_continue(filled, starts, goal)
+    }
+
+    pub fn bfs_continue<G: FnMut(P) -> bool, H: FnMut(P) -> bool>(
+        &mut self,
         mut filled: G,
         starts: &Vec<P>,
         mut goal: H,
     ) -> Option<P> {
-        assert_eq!(self.touched.len(), 0); // To confirm that the workspace is clean
 
         // Direction 6 is a special state only for the initialization
         for &p in starts.iter() {

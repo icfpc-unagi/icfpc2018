@@ -61,11 +61,12 @@ pub fn fusion_all(matrix: &V3<bool>, mut positions: Vec<P>) -> Vec<Command> {
                     pos_cands.insert(new_pos, cmd);
                 }
                 let goal_func = |p: P| { pos_cands.contains_key(&p) };
-                let new_pos = bfs.bfs(filled_func, &vec![P::new(0, 0, 0)], goal_func).unwrap();
+                let new_pos = bfs.bfs_continue(filled_func, &vec![P::new(0, 0, 0)], goal_func).unwrap();
                 cmd = pos_cands[&new_pos];
+                set_occupied(*pos, cmd, &mut occupied);
                 *pos = new_pos;
             }
-            set_occupied(*pos, cmd, &mut occupied);
+            // eprintln!("{:?} {:?}", pos, cmd);
             step_cmds[i] = cmd;
         }
 
