@@ -2,7 +2,6 @@
 #include <cstdio>
 #include <memory>
 #include <string>
-#include <string_view>
 #include <tuple>
 #include <unordered_map>
 #include <unordered_set>
@@ -480,14 +479,14 @@ struct State {
   }
 };
 
-std::unique_ptr<Matrix> read_model(std::string_view filename) {
-  FILE* fp = fopen(FLAGS_p.c_str(), "r");
-  CHECK(fp != nullptr) << "Failed to open " << FLAGS_p;
+std::unique_ptr<Matrix> read_model(const char* filename) {
+  FILE* fp = fopen(filename, "r");
+  CHECK(fp != nullptr) << "Failed to open " << filename;
   int r = fgetc(fp);
   CHECK_LE(r, 250);
   std::vector<uint8> buf((r * r * r + 7) / 8);
   CHECK(fread(buf.data(), buf.size(), buf.size(), fp) == 1)
-      << "Failed to read " << FLAGS_p;
+      << "Failed to read " << filename;
   fclose(fp);
   return std::unique_ptr<Matrix>(new Matrix(r, buf));
 }
@@ -504,11 +503,11 @@ int main(int argc, char** argv) {
   int r = FLAGS_r;
   std::unique_ptr<Matrix> source, target;
   if (!FLAGS_t.empty()) {
-    target = read_model(FLAGS_t);
+    target = read_model(FLAGS_t.c_str());
     r = target->r();
   }
   if (!FLAGS_s.empty()) {
-    source = read_model(FLAGS_s);
+    source = read_model(FLAGS_s.c_str());
     if (target) {
       CHECK_EQ(source->r(), target->r());
     } else {
