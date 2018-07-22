@@ -38,25 +38,17 @@ pub fn fusion_all(matrix: V3<bool>, positions: Vec<P>) -> Vec<Command> {
 
     let mut positions = positions;
 
-    //let mut sim = sim::SimState::from_positions(matrix, positions);
     let mut occupied = InitV3::new(false, r);
+    // while positions.len() > 1 && positions[0].mlen() != 0 {
     loop {
         occupied.init();
-        /*
+
         let mut step_cmds = Vec::new();
-        for cmds in cmdss.iter_mut() {
-            step_cmds.push(cmds.pop_front().unwrap_or(Command::Wait));
-        }
-        if step_cmds.iter().all(|&v| v == Command::Wait) {
-            break;
-        }
-        */
 
         for &pos in positions.iter() {
             occupied[pos] = true;
         }
 
-        let mut all_wait = true;
         eprintln!("{:?}", positions);
         for (pos, mut cmds) in positions.iter_mut().zip(cmdss.iter_mut()) {
             let cmd = cmds.pop_front().unwrap_or(Command::Wait);
@@ -64,8 +56,7 @@ pub fn fusion_all(matrix: V3<bool>, positions: Vec<P>) -> Vec<Command> {
             for (p, cmd_done, cmd_remain) in path(*pos, cmd) {
                 if occupied[p] {
                     cmds.push_front(cmd_remain);
-                    return_cmds.push(cmd_done);
-                    all_wait &= cmd_done == Command::Wait;
+                    step_cmds.push(cmd_done);
                     orz = true;
                     break;
                 }
@@ -73,33 +64,72 @@ pub fn fusion_all(matrix: V3<bool>, positions: Vec<P>) -> Vec<Command> {
                 *pos = p;
             }
             if !orz {
-                return_cmds.push(cmd);
-                all_wait &= cmd == Command::Wait;
+                step_cmds.push(cmd);
             }
+        }
+
+        let mut remove_bids = Vec::new();
+
+        let mut waiting_pos = BTreeSet::new();
+        for (i, &pos) in positions.iter().enumerate() {
+            if step_cmds[i] == Command::Wait {
+                waiting_pos.insert(pos);
+            }
+        }
+        while let Some((p1, p2)) = pop_near_pair(&mut waiting_pos) {
+            waiting_pos.remove(&p1);
+            waiting_pos.remove(&p2);
+            // these bid* are not true but positions are sorted by true bid
+            let bid1 = positions.iter().position(|&p| p == p1).unwrap();
+            let bid2 = positions.iter().position(|&p| p == p2).unwrap();
+            step_cmds[bid1] = Command::FusionP(p2 - p1);
+            step_cmds[bid2] = Command::FusionS(p1 - p2);
+            remove_bids.push(bid2);
+        }
+
+        let mut all_wait = step_cmds.iter().all(|&cmd| cmd == Command::Wait);
+        return_cmds.append(&mut step_cmds);
+
+        remove_bids.sort();
+        for bid in remove_bids.into_iter().rev() {
+            positions.remove(bid);
+            cmdss.remove(bid);
         }
         if all_wait {
             break;
         }
     }
-
-    let n = positions.len();
-    let mut sorted_pos = positions.clone();
-    sorted_pos.sort_by_key(|p| p.mlen());
-    for &pos in sorted_pos[1..n].iter().rev() {
-        eprintln!("{:?}", pos);
-        // these bid_* are not true but positions are sorted by true bid
-        let bid_s = positions.iter().position(|&p| p == pos).unwrap();
-        let bid_p = positions.iter().position(|&p| (p - pos).mlen() == 1).unwrap();
-        let pos_p = positions[bid_p];
-        let mut cmds = vec![Command::Wait; positions.len()];
-        cmds[bid_p] = Command::FusionP(pos - pos_p);
-        cmds[bid_s] = Command::FusionS(pos_p - pos);
-        return_cmds.append(&mut cmds);
-        positions.remove(bid_s);
-    }
     return_cmds.push(Command::Halt);
 
     return_cmds
+}
+
+
+fn pop_near_pair(mut poss: &mut BTreeSet<P>) -> Option<(P, P)> {
+    match get_near_pair(&poss) {
+        Some((p1, p2)) => {
+            poss.remove(&p1);
+            poss.remove(&p2);
+            if p1.mlen() <= p2.mlen() {
+                Some((p1, p2))
+            } else {
+                Some((p2, p1))
+            }
+        },
+        None => None,
+    }
+}
+
+
+fn get_near_pair(poss: &BTreeSet<P>) -> Option<(P, P)> {
+    for &p1 in poss.iter() {
+        for p2 in p1.near(9999) {
+            if poss.contains(&p2) {
+                return Some((p1, p2));
+            }
+        }
+    }
+    return None;
 }
 
 
