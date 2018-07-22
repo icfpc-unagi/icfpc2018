@@ -293,6 +293,7 @@ pub fn fission_to(filled: &V3<bool>, to: &Vec<P>) -> (Vec<usize>, Vec<Command>) 
             for i in ip..ip+n {
                 cmds_step.push(fusion_cmds[i]);
             }
+            eprintln!("{:?}", cmds_step);
             log_cmds.push(cmds_step.clone());
             sim.step(cmds_step);
             ip += n;
@@ -310,6 +311,8 @@ pub fn fission_to(filled: &V3<bool>, to: &Vec<P>) -> (Vec<usize>, Vec<Command>) 
     while let Some(cmds) = log_cmds.pop() {
         let next_bots = bots;
         bots = log_bots.pop().unwrap(); //.into_iter().collect();
+        eprintln!("fusion: {:?} <- {:?}", next_bots, bots);
+        eprintln!("fission: {:?} -> ", sim.bots);
 
         let mut back_cmds = BTreeMap::new();
         for (bot, &cmd) in bots.iter().zip(cmds.iter()) {
@@ -338,6 +341,7 @@ pub fn fission_to(filled: &V3<bool>, to: &Vec<P>) -> (Vec<usize>, Vec<Command>) 
         let bot = sim.bots.iter().find(|&b| b.p == pos).unwrap();
         bids.push(bot.bid);
     }
+    eprintln!("fission: finished!");
     (bids, fission_cmds)
 }
 
