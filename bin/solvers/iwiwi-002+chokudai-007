@@ -1,0 +1,9 @@
+#!/bin/bash -eu
+
+[ -z "$1" -o -z "$2" ] && exit 1
+
+echo ---- DESTRUCTION ---- 1>&2
+"$(dirname ${BASH_SOURCE})/iwiwi-002" "" "$2" | grep -v 'HALT'
+
+echo ---- CONSTRUCTION ---- 1>&2
+mono "$(dirname ${BASH_SOURCE})/../chokudai-solver/007.exe" "$1"
