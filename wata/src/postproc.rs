@@ -176,7 +176,7 @@ pub fn fusion_all_ver1(matrix: &V3<bool>, positions: Vec<P>) -> Vec<Command> {
             occupied[pos] = true;
         }
 
-        eprintln!("{:?}", positions);
+        // eprintln!("{:?}", positions);
         for (pos, mut cmds) in positions.iter_mut().zip(cmdss.iter_mut()) {
             let cmd = cmds.pop_front().unwrap_or(Command::Wait);
             let mut orz = false;
