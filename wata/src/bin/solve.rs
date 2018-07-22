@@ -26,14 +26,14 @@ struct Bot {
 	state: State,
 }
 
-fn split() -> Vec<Bot> {
-	for t in 0..19 {
+fn split(d: usize) -> Vec<Bot> {
+	for t in 0..d-1 {
 		for _ in 0..t {
 			println!("{}", Command::Wait.to_string());
 		}
-		println!("{}", Command::Fission(P::new(1, 0, 0), 18 - t as usize).to_string());
+		println!("{}", Command::Fission(P::new(1, 0, 0), d - 2 - t as usize).to_string());
 	}
-	(0..20).map(|i| Bot { bid: i, p: P::new(i as i32, 0, 0), state: State::Free }).collect()
+	(0..d).map(|i| Bot { bid: i, p: P::new(i as i32, 0, 0), state: State::Free }).collect()
 }
 
 fn main() {
@@ -44,7 +44,7 @@ fn main() {
 	let mut filled = mat![false; r; r; r];
 	let mut ground = mat![false; r; r; r];
 	let mut reserved = mat![!0; r; r; r];
-	let mut bots = split();
+	let mut bots = split(20);
 	let mut reserved_list = vec![BTreeSet::<P>::new(); bots.len()];
 	for x in 0..r {
 		for z in 0..r {
