@@ -234,12 +234,16 @@ foreach ($problems as $problem) {
                 $run = $runs[$problem['problem_id']];
                 $score = $run['run_score'];
                 if (is_null($score)) {
-                    if ($run['run_score_stdout']) {
+                    if (!is_null($run['run_queue'])) {
+                        if ($run['run_queue'] < date('Y-m-d H:i:s')) {
+                            $score = 'Waiting';
+                        } else {
+                            $score = 'Running';
+                        }
+                    } else if ($run['run_score_stdout']) {
                         $score = 'Error';
                     } else if ($run['run_stdout']) {
                         $score = 'Scoring';
-                    } else if (!is_null($run['run_queue'])) {
-                        $score = 'Waiting';
                     } else {
                         $score = 'Disabled';
                     }
