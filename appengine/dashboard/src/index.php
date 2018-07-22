@@ -71,6 +71,38 @@ foreach (Database::Select('SELECT * FROM standing') as $row) {
 	$standings[$row['problem_id']][$row['program_id']] = $row;
 }
 
+$stats = Database::SelectRow('
+	SELECT
+		SUM(run_score_queue < NOW() - INTERVAL 1 WEEK) AS score_queue_week,
+		SUM(run_score_queue < NOW() - INTERVAL 1 DAY) AS score_queue_day,
+		SUM(run_score_queue < NOW() - INTERVAL 1 HOUR) AS score_queue_hour,
+		SUM(run_score_queue < NOW()) AS score_queue,
+		SUM(run_score_queue >= NOW()) AS score_queue_lock,
+		SUM(run_queue < NOW() - INTERVAL 1 WEEK) AS run_queue_week,
+		SUM(run_queue < NOW() - INTERVAL 1 DAY) AS run_queue_day,
+		SUM(run_queue < NOW() - INTERVAL 1 HOUR) AS run_queue_hour,
+		SUM(run_queue < NOW()) AS run_queue,
+		SUM(run_queue >= NOW()) AS run_queue_lock,
+		SUM(run_executed > NOW() - INTERVAL 60 SECOND) AS executed_1m,
+		SUM(run_executed > NOW() - INTERVAL 600 SECOND) AS executed_10m,
+		SUM(run_executed > NOW() - INTERVAL 1 HOUR) AS executed_1h,
+		SUM(run_executed > NOW() - INTERVAL 1 DAY) AS executed_1d
+	FROM runs');
+$stats = array_map('intval', $stats);
+
+// buggy : 1 day : normal : 1 week : emergency
+foreach (['score_queue', 'run_queue'] as $queue) {
+	$stats["{$queue}_emergency"] = $stats["{$queue}_week"];
+	$stats["{$queue}_normal"] = $stats["{$queue}_day"] - $stats["{$queue}_week"];
+	$stats["{$queue}_buggy"] = $stats[$queue] - $stats["{$queue}_day"];
+}
+
+echo '<h2>Stats</h2><ul>';
+echo "<li>Executions: {$stats['executed_1m']} in 1 minute, {$stats['executed_10m']} in 10 minutes, {$stats['executed_1h']} in 1 hour, {$stats['executed_1d']} in 1 day\n";
+echo "<li>Execution queue: running={$stats['run_queue_lock']}, queued={$stats['run_queue']} (emergency={$stats['run_queue_emergency']}, normal={$stats['run_queue_normal']}, buggy={$stats['run_queue_buggy']})\n";
+echo "<li>Scoring queue: running={$stats['score_queue_lock']}, queued={$stats['score_queue']} (emergency={$stats['score_queue_emergency']}, normal={$stats['score_queue_normal']}, buggy={$stats['score_queue_buggy']})\n";
+echo '</ul>';
+
 $num_ranks = 10;
 echo '<h2>Overeview</h2>';
 echo '<div style="width:100%;overflow-x:scroll"><table class="table">';
