@@ -6,6 +6,7 @@ INFO('Fetching a run for scoring...');
 
 $dryrun = @(bool)getenv('DRYRUN');
 $run_id = @intval(getenv('RUN_ID'));
+$simulator_binary = getenv('SIMULATOR_BINARY') ?: 'sim';
 
 if ($run_id > 0) {
     Database::Command('SET @run_id := {run_id}', ['run_id' => $run_id]);
@@ -35,7 +36,7 @@ if (is_null($run)) {
 
 INFO("Preparing files...");
 file_put_contents('assembly', $run['run_stdout']);
-$command = 'sim -a assembly';
+$command = $simulator_binary . ' -a assembly';
 if ($run['problem_has_source']) {
     file_put_contents(
         'source', file_get_contents(dirname(__FILE__) . '/../data/problemsF/' . $run['problem_name'] . '_src.mdl'));
