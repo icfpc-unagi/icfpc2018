@@ -57,7 +57,7 @@ pub fn fusion_all(matrix: &V3<bool>, mut positions: Vec<P>) -> Vec<Command> {
             let cmd;
             {
                 let mut pos_cands = BTreeMap::new();
-                for (new_pos, cmd) in one_step(*pos, |p: P| matrix[p] || occupied[p]) {
+                for (new_pos, cmd) in one_step(*pos, r, |p: P| matrix[p] || occupied[p]) {
                     pos_cands.insert(new_pos, cmd);
                 }
                 let goal_func = |p: P| { pos_cands.contains_key(&p) };
@@ -86,10 +86,36 @@ pub fn fusion_all(matrix: &V3<bool>, mut positions: Vec<P>) -> Vec<Command> {
 }
 
 
-fn one_step<F: Fn(P) -> bool>(p: P, is_bad: F) -> Vec<(P, Command)> {
+fn one_step<F: Fn(P) -> bool>(p: P, r: usize, is_bad: F) -> Vec<(P, Command)> {
     // always push Wait
     // don't check p (occupied by self)
-    unimplemented!()
+    let mut ret = vec![(p, Command::Wait)];
+    for &v1 in ADJ.iter() {
+        let mut p1 = p;
+        for d1 in 1..=15 {
+            p1 += v1;
+            if !p1.is_valid(r) {
+                break;
+            }
+            ret.push((p1, Command::SMove(v1 * d1)));
+            if d1 <= 5 {
+                for &v2 in ADJ.iter() {
+                    if v2 == v1 || v2 == -v1 {
+                        continue;
+                    }
+                    let mut p2 = p1;
+                    for d2 in 1..=5 {
+                        p2 += v2;
+                        if !p2.is_valid(r) {
+                            break;
+                        }
+                        ret.push((p2, Command::LMove(v1 * d1, v2 * d2)));
+                    }
+                }
+            }
+        }
+    }
+    ret
 }
 
 
