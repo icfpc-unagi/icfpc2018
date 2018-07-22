@@ -18,6 +18,8 @@ $links = [
 	[['efs'], 'https://ap-northeast-1.console.aws.amazon.com/efs/home?region=ap-northeast-1'],
 	[['dns'], 'https://www.value-domain.com/moddnsfree.php?action=moddns2&domainname=sx9.jp'],
 	[['gce', 'gce-dashboard', 'gcp'], 'https://console.cloud.google.com/compute?project=icfpc-dashboard'],
+	[['dashboard', 'ranking'], 'https://icfpc-dashboard.appspot.com/'],
+	[['problems'], 'https://icfpc-dashboard.appspot.com/problems.php'],
 ];
 
 foreach (['api', 'dashboard', 'phpmyadmin'] as $service) {
