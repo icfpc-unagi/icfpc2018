@@ -86,12 +86,6 @@ impl CommandSet {
         }
         panic!();
     }
-
-    fn emit(&self) {
-        for command in self.commands.iter() {
-            println!("{}", command.to_string());
-        }
-    }
 }
 
 pub struct App {
@@ -315,19 +309,23 @@ impl App {
     // Main
     //
 
-    fn emit(&self) {
+    fn get_trace(&self) -> Vec<Command> {
+        let mut all: Vec<Command> = vec![];
         for command in self.fission_commands.iter() {
-            println!("{}", command.to_string());
+            all.push(*command);
         }
         for command_set in self.command_sets.iter() {
-            command_set.emit();
+            for command in command_set.commands.iter() {
+                all.push(*command);
+            }
         }
         for command in self.fusion_commands.iter() {
-            println!("{}", command.to_string());
+            all.push(*command)
         }
+        return all;
     }
 
-    pub fn main(&mut self) -> Vec<Command> {
+    pub fn main(&mut self) {
         // TODO: use a bounding box
         let r = self.model.r as i32;
 
@@ -393,10 +391,6 @@ impl App {
         }
 
         self.fusion();
-
-        self.emit();
-
-        return vec![];  // TODO!!!!!!oijafwpeofjaopiwefj
     }
 }
 
@@ -405,5 +399,6 @@ impl App {
 //
 pub fn destroy_large(model: Model) -> Vec<Command> {
     let mut app = App::new(&model);
-    return app.main();
+    app.main();
+    return app.get_trace();
 }
