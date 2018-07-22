@@ -165,14 +165,16 @@ fn destruct_support(target: &V3<bool>, filled: &mut V3<bool>, bots: &mut Vec<Bot
 		}
 	}
 	eprintln!("support = {:?}", supports);
-	let mut bs: Vec<[Option<usize>; 2]> = vec![[None, None]; supports.len()];
+	/// bs[i][j] := bid of the bot targetting supports[i][j]
+	let mut bs: Vec<[Option<usize>; 2]> = vec![[None; 2]; supports.len()];
+	/// working[i] := the target of the bod i
+	let mut working: Vec<Option<(usize, usize)>> = vec![None; bots.len()];
 	let mut finished = vec![false; supports.len()];
 	let mut rem = supports.len();
 	let mut t = bots[0].commands.len();
 	let mut occupied = InitV3::new(false, r);
 	let mut bpos = InitV3::new(!0, r);
 	let mut bfs = BFS::new(r);
-	let mut working = vec![None; bots.len()];
 	while rem > 0 {
 		eprintln!("rem: {}", rem);
 		let mut free = BTreeSet::new();
@@ -191,7 +193,8 @@ fn destruct_support(target: &V3<bool>, filled: &mut V3<bool>, bots: &mut Vec<Bot
 					moved[b.bid] = true;
 				} else {
 					if let Some((i, j)) = working[b.bid] {
-						// bs[i][j] = None;
+						bs[i][j] = None;
+						working[b.bid] = None;
 						b.commands.truncate(t);
 					} else {
 						assert!(false);
@@ -219,10 +222,11 @@ fn destruct_support(target: &V3<bool>, filled: &mut V3<bool>, bots: &mut Vec<Bot
 						bfs.clear();
 						if let Some(s) = bfs.bfs(|p| filled[p], &starts, |p| bpos[p] != !0) {
 							let bid = bpos[s];
+							assert!(bid != !0);
 							free.remove(&bid);
+							bs[i][j] = Some(bid);
 							working[bid] = Some((i, j));
 							bots[bid].commands.extend(bfs.restore_backward(s));
-							bs[i][j] = Some(bid);
 							break;
 						}
 					}
@@ -230,6 +234,9 @@ fn destruct_support(target: &V3<bool>, filled: &mut V3<bool>, bots: &mut Vec<Bot
 			}
 		}
 		for i in 0..bs.len() {
+			if finished[i] {
+				continue;
+			}
 			match bs[i] {
 				[Some(a), Some(b)] if bots[a].commands.len() == t && bots[b].commands.len() == t => {
 					let ca = Command::GVoid(supports[i][0] - bots[a].p, supports[i][1] - supports[i][0]);
@@ -237,9 +244,48 @@ fn destruct_support(target: &V3<bool>, filled: &mut V3<bool>, bots: &mut Vec<Bot
 					let cb = Command::GVoid(supports[i][1] - bots[b].p, supports[i][0] - supports[i][1]);
 					bots[b].commands.push(cb);
 					finished[i] = true;
+					for y in supports[i][0].y..=supports[i][1].y {
+						let mut p = supports[i][0];
+						p.y = y;
+						filled[p] = false;
+					}
 					working[a] = None;
 					working[b] = None;
+					bs[i] = [None; 2];
 					rem -= 1;
+				},
+				_ => {
+				}
+			}
+		}
+		for b in bots.iter_mut() {
+			if moved[b.bid] {
+				 continue;
+			}
+			if b.commands.len() > t {
+				if check_occupied(b.p, b.commands[t], &occupied) {
+					set_occupied(b.p, b.commands[t], &mut occupied);
+				} else {
+					if let Some((i, j)) = working[b.bid] {
+						bs[i][j] = None;
+						working[b.bid] = None;
+						b.commands.truncate(t);
+						b.commands.push(Command::Wait);
+					} else {
+						assert!(false);
+					}
+				}
+			} else {
+				b.commands.push(Command::Wait);
+			}
+		}
+		for b in bots.iter_mut() {
+			match b.commands[t] {
+				Command::SMove(d) => {
+					b.p += d;
+				},
+				Command::LMove(d1, d2) => {
+					b.p += d1 + d2;
 				},
 				_ => {
 				}
