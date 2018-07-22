@@ -13,6 +13,9 @@ Backlog:
 - bot: 5 * 8 とか色々試すようにする
 - 1回の面の消しをどういう順番でやるか全部試す
 - Harmonicsのオンオフを、余りbotが居ればそいつがやるようにする
+
+そのうち
+- 余るような小さいやつだったら1箇所にbotを2つおく
 */
 
 use wata::*;
@@ -129,6 +132,12 @@ impl CommandSet {
             )
         }
     }
+
+    fn emit(&self) {
+        for command in self.commands.iter() {
+            println!("{}", command.to_string());
+        }
+    }
 }
 
 
@@ -176,7 +185,6 @@ impl App {
                 if cs.is_all_wait() {
                     continue;
                 }
-                eprintln!("{:?}", cs);
                 self.command_sets.push(cs);
             }
         }
@@ -210,12 +218,16 @@ impl App {
         */
 
         loop {
-            let mut p = self.bots[bot_grid[0][0]].p;
+            let p = self.bots[bot_grid[0][0]].p;
             if p.y == 0 {
                 break;
             }
 
             self.destroy_layer(bot_grid);
+
+            if p.y == 1 {
+                break;
+            }
             self.move_down();
         }
     }
@@ -232,8 +244,8 @@ impl App {
             p0 + P::new(min(CELL_LENGTH * ix, r - 1), 0, min(CELL_LENGTH * iz, r - 1))
         }).collect();
 
-        //let (ord, cmds) = fission_to(&self.model.filled, &ps);
-        let ord: Vec<usize> = (0..n_bots).collect();
+        let (ord, cmds) = fission_to(&self.model.filled, &ps);
+        // let ord: Vec<usize> = (0..n_bots).collect();
         // TODO: print command
 
         self.bots = (0..n_bots).map(|bid| {
@@ -256,15 +268,16 @@ impl App {
 
     fn emit(&self) {
         for command_set in self.command_sets.iter() {
-            for command in command_set.commands.iter() {
-                println!("{}", command.to_string());
-            }
+            command_set.emit();
         }
     }
 
     fn main(&mut self) {
-        let n_bots_x = 2;  // TODO
-        let n_bots_z = 2;  // TODO
+        let r = self.model.r;
+        // TODO: hoge
+        let n_bots_x = min(6, (r - 1) / (CELL_LENGTH as usize) + 2);
+        let n_bots_z = n_bots_x;
+        eprintln!("R: {}, Bot grid: {} X {}", r, n_bots_x, n_bots_z);
 
         let bot_grid = self.fission(n_bots_x, n_bots_z);
         eprintln!("{:?}", bot_grid);
@@ -272,8 +285,13 @@ impl App {
 
         self.destroy_session(&bot_grid);
 
-        eprintln!("{:?}", self.command_sets);
-        self.emit();
+        for (i, command_set) in self.command_sets.iter().enumerate() {
+            println!("[ STEP {} ]", i);
+            command_set.emit();
+        }
+
+        // eprintln!("{:?}", self.command_sets);
+        // self.emit();
     }
 }
 
