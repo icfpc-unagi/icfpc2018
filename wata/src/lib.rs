@@ -319,9 +319,10 @@ pub fn fission_to(filled: &V3<bool>, to: &Vec<P>) -> (Vec<usize>, Vec<Command>) 
             if let Some(next_bot) = next_bots.iter().find(|&b| b.bid == bot.bid) {
                 let back_bot = sim.bots.iter().find(|&b| b.p == next_bot.p).unwrap();
                 let back_cmd = match cmd {
+                    Command::Wait => Command::Wait,
                     Command::SMove(d) => Command::SMove(-d),
                     Command::LMove(d1, d2) => Command::LMove(-d2, -d1),
-                    Command::FusionP(nd) => Command::Fission(-nd, bot.seeds.len() - next_bot.seeds.len() - 1),
+                    Command::FusionP(nd) => Command::Fission(nd, next_bot.seeds.len() - bot.seeds.len() - 1),
                     _ => panic!(),
                 };
                 back_cmds.insert(back_bot.bid, back_cmd);
