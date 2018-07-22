@@ -220,20 +220,18 @@ impl App {
 
     fn destroy_session(&mut self, bot_grid: &Vec<Vec<usize>>) {
         // Session: x and z coordinates are fixed. Destroy along y axis.
-
         let n_bots_x = bot_grid.len();
         let n_bots_z = bot_grid[0].len();
 
-        // TODO: Confirm the initial bot positions
-        /*
+        let p0 = self.bots[bot_grid[0][0]].p;
         for ix in 0..n_bots_x {
             for iz in 0..n_bots_z {
-                let q = p + P::new((ix as i32) * CELL_LENGTH, 0, (iz as i32) * CELL_LENGTH);
-                let b = &self.bots[bot_grid[ix][iz]];
-                assert_eq!(q, b.p);
+                let p = &self.bots[bot_grid[ix][iz]].p;
+                assert_eq!(p.y, p0.y);
+                assert_eq!(p.x, min(p0.x + (ix as i32) * CELL_LENGTH, (self.model.r - 1) as i32));
+                assert_eq!(p.z, min(p0.z + (iz as i32) * CELL_LENGTH, (self.model.r - 1) as i32));
             }
         }
-        */
 
         loop {
             let p = self.bots[bot_grid[0][0]].p;
@@ -344,7 +342,8 @@ impl App {
 }
 
 fn main() {
-    let file = std::env::args().nth(1).unwrap();
+    assert_eq!(std::env::args().nth(1).unwrap(), "");  // I am destroy-only solver
+    let file = std::env::args().nth(2).unwrap();
     let model = wata::read(&file);
     let mut app = App::new(&model);
     app.main();
