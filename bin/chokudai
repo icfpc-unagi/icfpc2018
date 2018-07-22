@@ -2,5 +2,4 @@
 
 set -e -u
 
-"$(dirname "${BASH_SOURCE}")/unagi-check"
-exec "${BASH_SOURCE}.sh" "$@"
+exec -- "$(dirname "${BASH_SOURCE}")/solve" --solver=chokudai "$@"
