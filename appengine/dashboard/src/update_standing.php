@@ -1,7 +1,7 @@
 <?php
 
 $data = file_get_contents(
-	'https://icfpcontest2018.github.io/lgtn/live-standings.html');
+	'https://icfpcontest2018.github.io/full/live-standings.html');
 
 $data = explode('<h2 id="by-team">', $data, 2)[1];
 

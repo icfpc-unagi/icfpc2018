@@ -33,17 +33,15 @@ Database::Command('
 				(default_run_score - best_run_score))
 		END) AS eval_score
 	FROM
-		(SELECT program_id, problem_id, MAX(run_score) AS run_score
-		 FROM runs GROUP BY program_id, problem_id) AS s
-		    NATURAL JOIN
+		runs NATURAL LEFT JOIN
 		(SELECT problem_id, IFNULL(run_score, 0) AS default_run_score
 		 FROM runs NATURAL RIGHT JOIN problems
 		 WHERE program_id = 9000) AS default_run_scores
-		    NATURAL JOIN
+		    NATURAL LEFT JOIN
 		(SELECT problem_id, MIN(run_score) AS best_run_score
 		 FROM runs NATURAL JOIN problems
 		 GROUP BY problem_id) AS best_run_scores
-		    NATURAL JOIN
+		    NATURAL LEFT JOIN
 		problems
 	WHERE run_score IS NOT NULL
 	ORDER BY problem_id, run_score ASC');
@@ -60,10 +58,10 @@ foreach (Database::Select('
 
 $problems = [];
 foreach (Database::Select('
-	SELECT problem_id, problem_name, problem_resolution
-	FROM
-		problems NATURAL JOIN
-		(SELECT problem_id FROM standing GROUP BY problem_id) AS s') as $problem) {
+       SELECT problem_id, problem_name, problem_resolution, problem_has_target, problem_has_source
+       FROM
+               problems NATURAL JOIN
+               (SELECT problem_id FROM standing GROUP BY problem_id) AS s') as $problem) {
 	$problems[$problem['problem_id']] = $problem;
 }
 
@@ -142,7 +140,13 @@ foreach ($problems as $problem) {
 	$resolution = $problem['problem_resolution'];
 	$default = $standings[$problem['problem_id']][9000];
 	$default_score = sprintf('%.2e', $default['run_score']);
-	echo "<td style=\"padding:0\"><span style=\"display:inline-block; height: 96px; vertical-align: middle;\"><img src=\"/thumbnails/{$problem_name}_tgt.mdl.png\" width=96 height=96></span><span style=\"display:inline-block; vertical-align: middle; padding: 5px;\"><a href=\"/problem.php?problem_id={$problem['problem_id']}\">{$problem_name}</a><br>R={$problem['problem_resolution']}<br>dfl=$default_score</span></td>";
+	echo "<td style=\"padding:0\"><span style=\"display:inline-block; height: 96px; vertical-align: middle;\">";
+	if ($problem['problem_has_target']) {
+		echo "<img src=\"/thumbnails/{$problem_name}_tgt.mdl.png\" width=96 height=96>";
+	} else {
+		echo "<img src=\"/thumbnails/{$problem_name}_src.mdl.png\" width=96 height=96>";
+	}
+	echo "</span><span style=\"display:inline-block; vertical-align: middle; padding: 5px;\"><a href=\"/problem.php?problem_id={$problem['problem_id']}\">{$problem_name}</a><br>R={$problem['problem_resolution']}<br>dfl=$default_score</span></td>";
 
 	$ranked_programs = array_values($standings[$problem['problem_id']]);
 	$my_rank = 'Unknown';
