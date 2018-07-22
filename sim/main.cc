@@ -82,6 +82,13 @@ struct hash<Coord> {
   }
 };
 template <>
+struct hash<std::pair<Coord, Coord>> {
+  std::size_t operator()(const std::pair<Coord, Coord>& p) const {
+    hash<Coord> h;
+    return h(p.first) * 15813257 + h(p.second);
+  }
+};
+template <>
 struct hash<Region> {
   std::size_t operator()(const Region& r) const {
     hash<Coord> h;
@@ -288,7 +295,7 @@ struct State {
               .emplace(std::piecewise_construct,
                        std::forward_as_tuple(bot.pos, bot.pos + dc),
                        std::forward_as_tuple(-1, -1))
-              .first = i;
+              .first->second.first = i;
         } else if ((b & 0b00000111) == 0b00000110) {  // FusionS
           int nd = (b /* & 0b11111000 */) >> 3;
           DCoord dc = near_diff(nd);
@@ -297,7 +304,7 @@ struct State {
               .emplace(std::piecewise_construct,
                        std::forward_as_tuple(bot.pos + dc, bot.pos),
                        std::forward_as_tuple(-1, -1))
-              .second = i;
+              .first->second.second = i;
         } else if ((b & 0b00000111) == 0b00000101) {  // Fission
           if (bot.seeds.empty()) {
             LOG(ERROR) << "Fission with no seeds";
