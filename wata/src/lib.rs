@@ -1,5 +1,6 @@
 use std::io::Read;
 use std::ops::*;
+use std::collections::BTreeMap;
 
 #[macro_export]
 macro_rules! debug {
@@ -133,6 +134,13 @@ impl<'a> Sub for &'a P {
 	fn sub(self, a: &P) -> P {
 		P::new(self.x - a.x, self.y - a.y, self.z - a.z)
 	}
+}
+
+impl Neg for P {
+    type Output = P;
+    fn neg(self) -> P {
+        P::new(-self.x, -self.y, -self.z)
+    }
 }
 
 impl Mul<i32> for P {
@@ -294,20 +302,40 @@ pub fn fission_to(filled: &V3<bool>, to: &Vec<P>) -> (Vec<usize>, Vec<Command>) 
         let last_cmds = log_cmds.pop();
         assert_eq!(last_cmds, Some(vec![Command::Halt]));
     }
-    let mut bots: Vec<_> = log_bots.pop().unwrap().into_iter().collect();
+    let mut bots = log_bots.pop().unwrap(); //.into_iter().collect();
 
-    let fission_cmds = Vec::new();
-    let mut rename = std::collections::BTreeMap::new();
-    rename.insert(bots[0].bid, 1);
+    let mut fission_cmds = Vec::new();
+    let mut sim = sim::SimState::new(filled.len(), to.len());
 
     while let Some(cmds) = log_cmds.pop() {
-        let prev_bots = bots;
-        bots = log_bots.pop().unwrap().into_iter().collect();
+        let next_bots = bots;
+        bots = log_bots.pop().unwrap(); //.into_iter().collect();
+
+        let mut back_cmds = BTreeMap::new();
+        for (bot, &cmd) in bots.iter().zip(cmds.iter()) {
+            // if let Command::FusionS(nd) = cmd {
+            //     continue;
+            // }
+            if let Some(next_bot) = next_bots.iter().find(|&b| b.bid == bot.bid) {
+                let back_bot = sim.bots.iter().find(|&b| b.p == next_bot.p).unwrap();
+                let back_cmd = match cmd {
+                    Command::SMove(d) => Command::SMove(-d),
+                    Command::LMove(d1, d2) => Command::LMove(-d2, -d1),
+                    Command::FusionP(nd) => Command::Fission(-nd, bot.seeds.len() - next_bot.seeds.len() - 1),
+                    _ => panic!(),
+                };
+                back_cmds.insert(back_bot.bid, back_cmd);
+            }
+        }
+        let back_cmds: Vec<_> = back_cmds.values().cloned().collect();
+        fission_cmds.append(&mut back_cmds.clone());
+        sim.step(back_cmds);
     }
 
     let mut bids = Vec::new();
-    for bot in bots {
-        bids.push(rename[&bot.bid]);
+    for &pos in to.iter() {
+        let bot = sim.bots.iter().find(|&b| b.p == pos).unwrap();
+        bids.push(bot.bid);
     }
     (bids, fission_cmds)
 }
