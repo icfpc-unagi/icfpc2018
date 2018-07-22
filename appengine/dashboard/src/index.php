@@ -20,7 +20,13 @@ if ($program_id) {
     echo '</ul>';
 }
 
-Database::Command('
+$where = '';
+
+if ($_GET['filter'] == 'public') {
+    $where .= ' AND problem_is_public ';
+}
+
+Database::Command("
     CREATE TEMPORARY TABLE standing AS
     SELECT
         run_id, program_id, problem_id,
@@ -44,8 +50,8 @@ Database::Command('
          GROUP BY problem_id) AS best_run_scores
             NATURAL LEFT JOIN
         problems
-    WHERE run_score IS NOT NULL
-    ORDER BY problem_id, run_score ASC');
+    WHERE run_score IS NOT NULL $where
+    ORDER BY problem_id, run_score ASC");
 
 $programs = [];
 foreach (Database::Select('
@@ -235,6 +241,23 @@ if ($program_id >= 10000) {
 
 $num_ranks = 10;
 echo '<h2>Overeview</h2>';
+
+echo '<form action="/" method="GET">';
+if ($_GET['program_id']) {
+    echo '<input type="hidden" name="program_id" value="' .
+        $_GET['program_id'] . '">';
+}
+
+echo '<select name="filter">';
+echo '<option value="" ' .
+     ($_GET['filter'] == '' ? ' selected' : '') . '>';
+echo 'All problems</option>';
+echo '<option value="public" ' .
+     ($_GET['filter'] == 'public' ? ' selected' : '') . '>';
+echo 'Public only</option>';
+echo '<input type="submit" value="View" style="margin:0 10px">';
+echo '</form>';
+
 echo '<div style="width:100%;overflow-x:scroll"><table class="table">';
 echo '<thead><td style="width:250px">Problem</td>';
 
