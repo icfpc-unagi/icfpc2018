@@ -32,13 +32,13 @@ struct Coord {
 };
 typedef Coord DCoord;
 static const Coord kZero = {0, 0, 0};
-static const std::array<Coord, 6> kAxis = {{
-    Coord{1, 0, 0},
-    Coord{0, 1, 0},
-    Coord{0, 0, 1},
-    Coord{-1, 0, 0},
-    Coord{0, -1, 0},
-    Coord{0, 0, -1},
+static const std::array<DCoord, 6> kAxis = {{
+    DCoord{1, 0, 0},
+    DCoord{0, 1, 0},
+    DCoord{0, 0, 1},
+    DCoord{-1, 0, 0},
+    DCoord{0, -1, 0},
+    DCoord{0, 0, -1},
 }};
 
 ostream& operator<<(ostream& os, const Coord& c) {
@@ -313,19 +313,28 @@ struct State {
           filled.push_back(c);
         } else if ((b & 0b00000111) == 0b00000010) {  // Void
           int nd = (b /* & 0b11111000 */) >> 3;
-          Coord c = bot.pos + near_diff(nd);
+          DCoord dc = near_diff(nd);
+          VLOG(2) << "Void " << dc;
+          Coord c = bot.pos + dc;
           if (!check_coord(c)) return false;
           if (!check_interference(&volat, c)) return false;
           voided.push_back(c);
         } else if ((b & 0b00000111) == 0b00000001) {  // GFill
           int nd = (b /* & 0b11111000 */) >> 3;
-          Coord c1 = bot.pos + near_diff(nd);
-          if (!check_coord(c1)) return false;
-          Coord c2 = bot.pos;
-          c2.x += fgetc(fa);
-          c2.y += fgetc(fa);
-          c2.z += fgetc(fa);
+          DCoord dc = near_diff(nd);
+          int fdx = fgetc(fa);
+          int fdy = fgetc(fa);
+          int fdz = fgetc(fa);
           if (!check_eof(fa)) return false;
+          DCoord fd(fdx - 30, fdy - 30, fdz - 30);
+          VLOG(2) << "GFill " << dc << " " << fd;
+          if (fd.x > 30 || fd.y  > 30 || fd.z > 30) {
+            LOG(ERROR) << "Invalid far coordinate distance " << fd;
+            return false;
+          }
+          Coord c1 = bot.pos + dc;
+          Coord c2 = c1 + fd;
+          if (!check_coord(c1)) return false;
           if (!check_coord(c2)) return false;
           if (!gfilled
                    .emplace(std::piecewise_construct,
@@ -338,13 +347,20 @@ struct State {
           }
         } else if ((b & 0b00000111) == 0b00000000) {  // GVoid
           int nd = (b /* & 0b11111000 */) >> 3;
-          Coord c1 = bot.pos + near_diff(nd);
-          if (!check_coord(c1)) return false;
-          Coord c2 = bot.pos;
-          c2.x += fgetc(fa);
-          c2.y += fgetc(fa);
-          c2.z += fgetc(fa);
+          DCoord dc = near_diff(nd);
+          int fdx = fgetc(fa);
+          int fdy = fgetc(fa);
+          int fdz = fgetc(fa);
           if (!check_eof(fa)) return false;
+          DCoord fd(fdx - 30, fdy - 30, fdz - 30);
+          VLOG(2) << "GVoid " << dc << " " << fd;
+          if (fd.x > 30 || fd.y  > 30 || fd.z > 30) {
+            LOG(ERROR) << "Invalid far coordinate distance " << fd;
+            return false;
+          }
+          Coord c1 = bot.pos + dc;
+          Coord c2 = c1 + fd;
+          if (!check_coord(c1)) return false;
           if (!check_coord(c2)) return false;
           if (!gvoided
                    .emplace(std::piecewise_construct,
@@ -490,7 +506,7 @@ struct State {
   }
   bool check_coord(const Coord& c) const {
     if (!c.is_valid(r)) {
-      LOG(ERROR) << "Invalid coordinate";
+      LOG(ERROR) << "Invalid coordinate " << c;
       return false;
     }
     return true;

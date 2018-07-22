@@ -18,5 +18,6 @@ test: ../bazel-bin/sim/sim
 	$< ../data/dfltTracesL/LA020.nbt -t ../data/problemsL/LA020_tgt.mdl --logtostderr | grep energy:21353195740
 	$< ./tests/tos2.nbt -t ../data/problemsL/LA002_tgt.mdl --logtostderr | grep energy:2610292
 	$< ./tests/tos50.nbt -t ../data/problemsL/LA050_tgt.mdl --logtostderr | grep energy:1340025018
-	$< tests/void.nbt -r 10
+	$< ./tests/void.nbt -r 10
+	$< ./tests/gvoid.nbt -s ../data/problemsF/FD001_src.mdl --logtostderr | grep energy:9475625
 .PHONY: test
