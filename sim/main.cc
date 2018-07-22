@@ -613,11 +613,6 @@ int main(int argc, char** argv) {
             << "\n   lmove energy : " << s.energy_lmove
             << "\n    fill energy : " << s.energy_fill
             << "\n \x1b[33m[ total energy : " << s.energy() << " ]\x1b[0m";
-  if (success) {
-    printf("time:%d\n", s.steps);
-    printf("commands:%d\n", s.commands);
-    printf("energy:%lld\n", s.energy());
-  }
 
   if (!FLAGS_output_model.empty()) {
     write_model(s.matrix, {}, FLAGS_output_model.c_str());
@@ -631,6 +626,12 @@ int main(int argc, char** argv) {
   if (FLAGS_stop_at == 0 && target && s.matrix != *target) {
     LOG(ERROR) << "Constructed model unmatched";
     return 1;
+  }
+
+  if (success) {
+    printf("time:%d\n", s.steps);
+    printf("commands:%d\n", s.commands);
+    printf("energy:%lld\n", s.energy());
   }
 
   return 0;
