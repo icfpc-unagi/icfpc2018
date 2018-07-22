@@ -113,6 +113,25 @@ echo '<thead><td style="width:250px">Problem</td>';
 
 if ($program_id) {
     echo "<td style=\"width:120px;white-space:nowrap;overflow-x:hidden\">{$programs[$program_id]['program_name']}</td>";
+
+    $runs = [];
+    foreach (Database::Select('
+        SELECT
+            run_id,
+            program_id,
+            problem_id,
+            run_score,
+            run_score_queue,
+            run_score_stdout IS NOT NULL AS run_score_stdout,
+            run_stdout IS NOT NULL AS run_stdout,
+            run_queue,
+            run_executed,
+            run_modified,
+            run_created
+        FROM runs
+        WHERE program_id = {program_id}', ['program_id' => $program_id]) as $run) {
+        $runs[$run['problem_id']] = $run;
+    }
 }
 
 function to_rank($num) {
@@ -210,6 +229,23 @@ foreach ($problems as $problem) {
             $program = @$ranked_programs[$i];
         }
         if (!$program) {
+            if ($i == -1) {
+                $run = $runs[$problem['problem_id']];
+                $score = $run['run_score'];
+                if (is_null($score)) {
+                    if ($run['run_score_stdout']) {
+                        $score = 'Error';
+                    } else if ($run['run_stdout']) {
+                        $score = 'Scoring';
+                    } else if (!is_null($run['run_queue'])) {
+                        $score = 'Waiting';
+                    } else {
+                        $score = 'Disabled';
+                    }
+                }
+                echo "<td><i>$score</i></td>";
+                continue;
+            }
             echo '<td class="rank"></td>';
             continue;
         }
