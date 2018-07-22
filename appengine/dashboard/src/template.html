@@ -21,7 +21,7 @@ header {
 	width: 100%;
 	line-height: 50px;
 	height: 50px;
-	font-size: 25px;
+	font-size: 18px;
 	background: #f7fff7;
 	margin: 0px;
 	border-bottom: 1px solid #ddd;
@@ -29,12 +29,18 @@ header {
 	vertical-align: middle;
 }
 
-header a {
+header .title {
+	display: inline-block;
+	font-size: 150%;
+	margin-right: 30px;
+}
+
+header .title a {
 	text-decoration: none;
 	color: inherit;
 }
 
-header a img {
+header .title a img {
 	border: none;
 }
 
@@ -118,7 +124,13 @@ h3 {
 <body>
 <header>
 <div class="page">
+<div class="title">
 <a href="/"><img src="/assets/images/unagi.png" height="25" width="25"> Unagi ICFPC2018 Standings</a>
+</div>
+
+<a href="/">Standings</a> -
+<a href="/problems.php">Problems</a>
+
 </div>
 </header>
 <div class="page" style="padding-top: 50px">

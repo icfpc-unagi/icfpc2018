@@ -4,6 +4,8 @@ ob_start();
 
 echo '<h2>Problems</h2>';
 
+echo '<center>';
+
 $problems = Database::Select(
 	'SELECT problem_name, problem_resolution, problem_has_source, problem_has_target FROM problems WHERE problem_name LIKE "F%"');
 
@@ -38,6 +40,8 @@ foreach ($problems as $problem) {
 	echo '<div style="position:absolute;left:0;top:0;width:' . ($width * 128) . 'px;color:#fff;text-align:center;font-size:90%;">' . $mode . $problem['problem_name'] . ' (R:' . $problem['problem_resolution'] . ')</div>';
 	echo '</div>';
 }
+
+echo '</center>';
 
 $body = ob_get_clean();
 include('template.html');
