@@ -21,7 +21,7 @@ Database::Command('
 	INSERT IGNORE INTO runs(problem_id, program_id, run_queue) SELECT
 		problem_id,
 		{program_id} AS program_id,
-		NOW() AS run_queue
+		NOW() - INTERVAL (RAND() + 1) * 24 * 60 * 60 SECOND AS run_queue
 	FROM
 		(SELECT problem_id FROM problems) AS s1
 			NATURAL LEFT JOIN
