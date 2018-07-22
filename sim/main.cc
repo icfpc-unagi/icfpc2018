@@ -485,7 +485,7 @@ std::unique_ptr<Matrix> read_model(const char* filename) {
   int r = fgetc(fp);
   CHECK_LE(r, 250);
   std::vector<uint8> buf((r * r * r + 7) / 8);
-  CHECK(fread(buf.data(), buf.size(), buf.size(), fp) == 1)
+  CHECK(fread(buf.data(), buf.size(), 1, fp) == 1)
       << "Failed to read " << filename;
   fclose(fp);
   return std::unique_ptr<Matrix>(new Matrix(r, buf));
