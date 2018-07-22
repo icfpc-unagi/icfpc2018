@@ -80,7 +80,7 @@ run_with_simulator() {
 			simulator_flags+=(-t "${target_file}")
 		fi
 		if [ -f "${source_file}" ]; then
-			simulator_flags+=(-t "${source_file}")
+			simulator_flags+=(-s "${source_file}")
 		fi
 		run_with_binarizer | \
 			"${FLAGS_sim_binary}" \
