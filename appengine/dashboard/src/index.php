@@ -38,10 +38,15 @@ if ($_GET['group'] == 'fr') {
     $where .= ' AND problem_name LIKE "FR%" ';
 }
 
+$program_id_field = 'program_id';
+if ($_GET['unagi']) {
+    $program_id_field = 'CASE WHEN program_id >= 10000 THEN 9999 ELSE program_id END AS program_id';
+}
+
 Database::Command("
     CREATE TEMPORARY TABLE standing AS
     SELECT
-        run_id, program_id, problem_id,
+        run_id, $program_id_field, problem_id,
         run_score, best_run_score, default_run_score,
         (CASE WHEN best_run_score = default_run_score THEN
             FLOOR(LOG2(problem_resolution)) * 1000
@@ -259,6 +264,15 @@ if ($_GET['program_id']) {
     echo '<input type="hidden" name="program_id" value="' .
         $_GET['program_id'] . '">';
 }
+
+echo '<select name="unagi">';
+echo '<option value="0" ' .
+     ($_GET['unagi'] == '' ? ' selected' : '') . '>';
+echo 'Separated Unagi</option>';
+echo '<option value="1" ' .
+     ($_GET['unagi'] == '1' ? ' selected' : '') . '>';
+echo 'Merged Unagi</option>';
+echo '</select>';
 
 echo '<select name="filter">';
 echo '<option value="" ' .
