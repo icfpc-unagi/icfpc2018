@@ -1,6 +1,7 @@
 #![allow(unused)]
 use *;
 use std::collections::*;
+use std::iter::FromIterator;
 
 
 pub fn fusion_all(matrix: &V3<bool>, positions: Vec<P>) -> Vec<Command> {
@@ -20,20 +21,25 @@ pub fn fusion_all(matrix: &V3<bool>, positions: Vec<P>) -> Vec<Command> {
     let mut bfs = bfs::BFS::new(r);
     {
         let filled_func = |p: P| { matrix[p] };
-        let goal_func = |p: P| { p.x == 0 && p.y == 0 && p.z == 0 };
-        for &pos in positions.iter() {
-            let ret = bfs.bfs(filled_func, &vec![pos], goal_func);
-            eprintln!("{:?} -> {:?}", pos, ret);
-            if let None = ret {
-                for &t in bfs.touched.iter() {
-                    eprintln!("{:?}", t);
+
+        let mut unreached_position_set = BTreeSet::from_iter(positions.iter());
+        {
+            let goal_func = |p: P| {
+                if unreached_position_set.remove(&p) {
+                    eprintln!("Fusion BFS: {} / {} remaining", unreached_position_set.len(), positions.len());
                 }
-            }
-            let cmds = bfs.restore(ret.unwrap());
-            bfs.clear();
+                return unreached_position_set.len() == 0;
+            };
+            bfs.bfs(filled_func, &vec![P::new(0, 0, 0)], goal_func);
+        }
+        assert_eq!(unreached_position_set.len(), 0);  // Otherwise, some positions were unreachable
+
+        for &pos in positions.iter() {
+            let cmds = bfs.restore_backward(pos);
             cmdss.push(cmds.into_iter().collect());
         }
-        eprintln!("{:?}", cmdss);
+
+        bfs.clear();
     }
 
     let mut positions = positions;

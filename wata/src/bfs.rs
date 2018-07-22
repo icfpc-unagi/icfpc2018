@@ -199,6 +199,8 @@ impl BFS {
     }
 
     pub fn restore(&self, p: P) -> Vec<Command> {
+        // Get the path to `p`
+
         let d: usize = (0..7).min_by_key(|&d| self.cost[p][d]).unwrap();
         let mut s = SearchState { p, d };
         assert_ne!(self.cost[s], MAX_C); // To confirm the reachability
@@ -222,6 +224,18 @@ impl BFS {
 
         cmds.reverse();
         return cmds;
+    }
+
+    pub fn restore_backward(&self, p: P) -> Vec<Command> {
+        let mut cmds_fwd = self.restore(p);
+        cmds_fwd.reverse();
+        return cmds_fwd.iter().map(|cmd| {
+            match cmd {
+                Command::SMove(p) => Command::SMove(-*p),
+                Command::LMove(p, q) => Command::LMove(-*q, -*p),
+                _ => panic!()
+            }
+        }).collect();
     }
 
     pub fn get_cost(&self, p: P) -> i32 {
