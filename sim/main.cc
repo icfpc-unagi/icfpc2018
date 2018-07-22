@@ -23,14 +23,14 @@ struct Coord {
     return x == rhs.x && y == rhs.y && z == rhs.z;
   }
   bool operator!=(const Coord& rhs) const { return !(*this == rhs); }
-  Coord operator+(const Coord& rhs) {
+  Coord operator+(const Coord& rhs) const {
     return Coord{x + rhs.x, y + rhs.y, z + rhs.z};
   }
   bool is_valid(int r) const {
     return 0 <= x && x < r && 0 <= y && y < r && 0 <= z && z < r;
   }
 };
-
+typedef Coord DCoord;
 static const Coord kZero = {0, 0, 0};
 static const std::array<Coord, 6> kAxis = {{
     Coord{1, 0, 0},
@@ -40,8 +40,6 @@ static const std::array<Coord, 6> kAxis = {{
     Coord{0, -1, 0},
     Coord{0, 0, -1},
 }};
-
-typedef Coord DCoord;
 
 ostream& operator<<(ostream& os, const Coord& c) {
   return os << '<' << c.x << ',' << c.y << ',' << c.z << '>';
@@ -421,13 +419,13 @@ struct State {
         }
       }
 
-      // Update
-      for (auto& bot : bots_activated) bots.emplace(std::move(bot));
       for (const Coord& c : filled) energy_fill += matrix[c] ? 6 : 12;
       for (const Coord& c : voided) energy_void += matrix[c] ? -12 : 3;
-      if (harmonics) {
-        for (const Coord& u : filled) matrix[u] = true;
-      } else if (voided.empty()) {
+
+      for (const Coord& c : voided) matrix[c] = false;
+      // Check grounding
+      if (!harmonics) {
+        // connections
         std::unordered_set<Coord> uncon(filled.begin(), filled.end());
         while (!uncon.empty()) {
           auto it = uncon.begin();
@@ -446,11 +444,38 @@ struct State {
           }
           matrix[u] = true;
         }
-      } else {
-        // TODO: cover dynamic disconnections
-        for (const Coord& c : filled) matrix[c] = true;
-        for (const Coord& c : voided) matrix[c] = false;
+        // disconnections
+        std::unordered_set<Coord> g;  // known to be grounded
+        for (const Coord& v : voided) {
+          for (const DCoord& a : kAxis) {
+            Coord c = v + a;  // each 6-neighbor to the hole
+            if (c.is_valid(r) && matrix[c]) {
+              std::vector<Coord> s(1, c);  // bfs stack to the ground
+              std::unordered_set<Coord> t(s.begin(), s.end());
+              while (!s.empty()) {
+                Coord u = s.back();
+                if (u.y == 0 || g.count(u) > 0) {
+                  g.insert(t.begin(), t.end());
+                  break;
+                }
+                s.pop_back();
+                for (const DCoord& b : kAxis) {
+                  Coord d = u + b;
+                  if (d.is_valid(r) && matrix[d] && t.insert(d).second) {
+                    s.push_back(d);
+                  }
+                }
+              }
+              if (s.empty()) {
+                LOG(ERROR) << "Ungrounded by Void voxel";
+                return false;
+              }
+            }
+          }
+        }
       }
+      for (const Coord& c : filled) matrix[c] = true;
+      for (auto& bot : bots_activated) bots.emplace(std::move(bot));
       if (halted) bots.clear();
       ++steps;
     }
