@@ -2,6 +2,7 @@
 
 require_once(dirname(__FILE__) . '/library/config.php');
 
+$dry_run = intval(getenv('dry_run'));
 $run_id = intval(getenv('run_id'));
 
 INFO('Fetching a run...');
@@ -19,6 +20,8 @@ if ($run_id) {
 $run = Database::SelectRow('
 	SELECT
 		run_id,
+		run_score,
+		run_time_limit,
 		problem_name,
 		problem_data_hash,
 		program_name,
@@ -33,6 +36,10 @@ if (is_null($run)) {
     exit();
 }
 
+if ($run_id && !$dry_run && $run['run_score']) {
+	FATAL("Already scored run.");
+}
+
 INFO("Preparing files...");
 file_put_contents(
 	'input', file_get_contents(dirname(__FILE__) . '/../data/problemsF/' . $run['problem_name'] . '_tgt.mdl'));
@@ -44,10 +51,21 @@ file_put_contents('wrapper', '
 ');
 
 INFO("Executing a run (run_id={$run['run_id']})...");
-$command = dirname(__FILE__) . '/timeout --timeout=1800 bash ./wrapper';
+$time_limit = @intval($run['run_time_limit']);
+if ($time_limit == 0) {
+	$time_limit = 1800;
+}
+if ($time_limit > 1800) {
+	Database::Command("
+		UPDATE runs SET
+			run_queue = NOW() + INTERVAL $time_limit + 200 SECOND
+		WHERE run_id = @run_id LIMIT 1");
+}
+
+$command = dirname(__FILE__) . "/timeout --timeout=$time_limit bash ./wrapper";
 system($command);
 
-if ($run_id) {
+if ($dry_run) {
 	print_r([
 		'run_stdout' => filesize('stdout'),
 		'run_stderr' => filesize('stderr'),
