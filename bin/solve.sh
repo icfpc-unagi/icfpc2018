@@ -75,11 +75,18 @@ run_with_binarizer() {
 run_with_simulator() {
 	if (( FLAGS_simulate )); then
 		FLAGS_binary=1
+		simulator_flags=(-a /dev/stdin)
+		if [ -f "${target_file}" ]; then
+			simulator_flags+=(-t "${target_file}")
+		fi
+		if [ -f "${source_file}" ]; then
+			simulator_flags+=(-t "${source_file}")
+		fi
 		run_with_binarizer | \
 			"${FLAGS_sim_binary}" \
 				--alsologtostderr="${FLAGS_alsologtostderr}" \
 				--logtostderr="${FLAGS_logtostderr}" \
-				-a /dev/stdin -p "${problem_file}_tgt.mdl"
+				"${simulator_flags[@]}"
 	else
 		run_with_binarizer
 	fi
