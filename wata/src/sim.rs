@@ -96,7 +96,7 @@ impl SimState {
                 continue;
             }
             if let FusionS(nd) = cmd {
-                sbots.insert((bot.p - nd, bot.p), bot);
+                sbots.insert((bot.p + nd, bot.p), bot);
                 continue;
             }
             match cmd {
