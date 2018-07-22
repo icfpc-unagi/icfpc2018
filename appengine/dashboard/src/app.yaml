@@ -4,9 +4,9 @@ api_version: 1
 
 handlers:
 
-- url: /(.+\.(ico|jpg|png|gif))$
+- url: /(.+\.(ico|jpg|png|gif|mdl|xmdl))$
   static_files: \1
-  upload: (.+\.(ico|jpg|png|gif))$
+  upload: (.+\.(ico|jpg|png|gif|mdl|xmdl))$
   application_readable: true
 
 - url: /(.+\.(htm|html|css|js))$
@@ -17,7 +17,7 @@ handlers:
 - url: /(.+\.php)$
   script: \1
 
-- url: /.*
+- url: /$
   script: index.php
 
 includes:
