@@ -13,6 +13,9 @@ pub enum Command {
     FusionS(P),
     Fission(P, usize),
     Fill(P),
+    Void(P),
+    GFill(P, P),
+    GVoid(P, P),
 }
 
 impl ToString for Command {
@@ -27,6 +30,9 @@ impl ToString for Command {
             Command::FusionS(p) => format!("FUSIONS {} {} {}", p.x, p.y, p.z),
             Command::Fission(p, m) => format!("FISSION {} {} {} {}", p.x, p.y, p.z, m),
             Command::Fill(p) => format!("FILL {} {} {}", p.x, p.y, p.z),
+            Command::Void(p) => format!("VOID {} {} {}", p.x, p.y, p.z),
+            Command::GFill(nd, fd) => format!("GFILL {} {} {} {} {} {}", nd.x, nd.y, nd.z, fd.x, fd.y, fd.z),
+            Command::GVoid(nd, fd) => format!("GVOID {} {} {} {} {} {}", nd.x, nd.y, nd.z, fd.x, fd.y, fd.z),
         }
     }
 }
@@ -50,6 +56,10 @@ fn parse_nd(tokens: &[&str]) -> P {
         i32::from_str(tokens[1]).unwrap(),
         i32::from_str(tokens[2]).unwrap(),
     );
+}
+
+fn parse_fd(tokens: &[&str]) -> P {
+    parse_nd(tokens)
 }
 
 impl std::str::FromStr for Command {
@@ -86,6 +96,18 @@ impl std::str::FromStr for Command {
             "FILL" => {
                 assert_eq!(tokens.len(), 4);
                 Command::Fill(parse_nd(&tokens[1..]))
+            }
+            "VOID" => {
+                assert_eq!(tokens.len(), 4);
+                Command::Void(parse_nd(&tokens[1..]))
+            }
+            "GFILL" => {
+                assert_eq!(tokens.len(), 7);
+                Command::GFill(parse_nd(&tokens[1..4]), parse_fd(&tokens[4..]))
+            }
+            "GVOID" => {
+                assert_eq!(tokens.len(), 7);
+                Command::GVoid(parse_nd(&tokens[1..4]), parse_fd(&tokens[4..]))
             }
             _ => panic!(),
         });

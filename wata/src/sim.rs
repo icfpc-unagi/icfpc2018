@@ -112,9 +112,4 @@ impl SimState {
             self.bots.insert(pbot);
         }
     }
-
-    pub fn step_approx(&mut self, cmds: Vec<Command>) -> Vec<Command> {
-        // returns approx'ed cmds
-        unimplemented!()
-    }
 }
