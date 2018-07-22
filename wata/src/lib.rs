@@ -271,10 +271,10 @@ pub fn read(path: &str) -> Model {
 }
 
 pub fn fission_to(filled: &V3<bool>, to: &Vec<P>) -> (Vec<usize>, Vec<Command>)  {
-    let fusion_cmds = postproc::fusion_all(filled, to.clone());
     let mut log_bots = Vec::new();
     let mut log_cmds = Vec::new();
     {
+        let fusion_cmds = postproc::fusion_all(filled, to.clone());
         let mut sim = sim::SimState::from_positions(filled.clone(), to.clone());
 
         let mut ip = 0;
@@ -294,12 +294,22 @@ pub fn fission_to(filled: &V3<bool>, to: &Vec<P>) -> (Vec<usize>, Vec<Command>) 
         let last_cmds = log_cmds.pop();
         assert_eq!(last_cmds, Some(vec![Command::Halt]));
     }
-
     let mut bots: Vec<_> = log_bots.pop().unwrap().into_iter().collect();
 
+    let fission_cmds = Vec::new();
     let mut rename = std::collections::BTreeMap::new();
-    rename.insert(&bots[0].bid, 1);
-	unimplemented!()
+    rename.insert(bots[0].bid, 1);
+
+    while let Some(cmds) = log_cmds.pop() {
+        let prev_bots = bots;
+        bots = log_bots.pop().unwrap().into_iter().collect();
+    }
+
+    let mut bids = Vec::new();
+    for bot in bots {
+        bids.push(rename[&bot.bid]);
+    }
+    (bids, fission_cmds)
 }
 
 pub mod bfs;
