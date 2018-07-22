@@ -87,16 +87,15 @@ pub fn fusion_all(matrix: &V3<bool>, positions: Vec<P>) -> Vec<Command> {
             remove_bids.push(bid2);
         }
 
-        let mut all_wait = step_cmds.iter().all(|&cmd| cmd == Command::Wait);
+        if step_cmds.iter().all(|&cmd| cmd == Command::Wait) {
+            break;
+        }
         return_cmds.append(&mut step_cmds);
 
         remove_bids.sort();
         for bid in remove_bids.into_iter().rev() {
             positions.remove(bid);
             cmdss.remove(bid);
-        }
-        if all_wait {
-            break;
         }
     }
     return_cmds.push(Command::Halt);
