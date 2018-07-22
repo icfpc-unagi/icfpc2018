@@ -1,4 +1,4 @@
-use super::*;
+use super::super::*;
 
 pub fn destroy_small(model: Model) -> Vec<Command> {
     let r = model.r as i32;
@@ -13,8 +13,8 @@ pub fn destroy_small(model: Model) -> Vec<Command> {
             ((i >> 1) & 1) * (r - 1),
             ((i >> 2) & 1) * (r - 1))
     }).collect();
-    let (ord, cmds) = fission_to(&model.filled, &bot_ps);
-    all.extend(cmds);
+    let (order, commands) = fission_to(&model.filled, &bot_ps);
+    all.extend(commands);
 
     //
     // GVoid
@@ -30,7 +30,7 @@ pub fn destroy_small(model: Model) -> Vec<Command> {
         let mut commands = vec![Command::Wait; 8];
 
         for i in 0..8 {
-            let my_bid = ord[i] - 1;  // ord is 1-indexed
+            let my_bid = order[i] - 1;  // ord is 1-indexed
             let my_bot_p = bot_ps[i];
             let my_gvoid_p = gvoid_ps[i];
 
@@ -49,7 +49,7 @@ pub fn destroy_small(model: Model) -> Vec<Command> {
     //
     let mut bot_ps2 = vec![P::new(0, 0, 0); 8];
     for i in 0..8 {
-        bot_ps2[ord[i] - 1] = bot_ps[i];
+        bot_ps2[order[i] - 1] = bot_ps[i];
     }
     let commands = postproc::fusion_all(&mat![false; r as usize; r as usize; r as usize], bot_ps2);
     all.extend(commands);
