@@ -2,11 +2,16 @@
 extern crate wata;
 
 /*
-Backlog:
-- まずはなんでも良いから全部破壊する
+完了:
+- まずはなんでも良いから全部破壊する (R ≦ 150)
     - 方向固定: 上から
     - Harmonics: とりあえず常時on
     - bot: 6 * 6 固定
+    - session: 1発
+
+Backlog:
+- まずは何でも良いから全部破壊する（全R）
+    - マルチセッション
 - bounding boxを真面目にやる
 - Harmonicsを必要なときだけにする
 - 方向: 全通り試す
@@ -21,7 +26,7 @@ Backlog:
 
 use wata::*;
 use wata::bfs::*;
-use std::cmp::min;
+use std::cmp::{min, max};
 use std::collections::*;
 
 #[derive(Clone, Debug)]
@@ -35,63 +40,6 @@ struct Bot {
     bid: usize,
     p: P,
 }
-
-/*
-struct Trace {
-    model: Model,
-    commands: Vec<Vec<Command>>,
-    harmonics: bool,
-    bots: Vec<Bot>,
-}
-
-impl Trace {
-    fn new(model: Model) -> Trace {
-        Trace {
-            model,
-            commands: vec![],
-            harmonics: false,
-            bots: vec![Bot { bid: 0, p: P::new(0, 0, 0)}; 1],
-        }
-    }
-
-    fn fission(&mut self, n: usize, ) {
-        // Should be called first
-        assert_eq!(self.commands.len(), 0);
-
-        for t in 0..(n - 1) {
-            let mut step = vec![];
-            for _ in 0..t {
-                step.push(Command::Wait);
-            }
-            step.push(Command::Fission(P::new(1, 0, 0), 18 - t as usize));
-            self.commands.push(step);
-        }
-        self.bots = (0..n).map(|i| Bot { bid: i, p: P::new(i as i32, 0, 0) }).collect()
-    }
-
-    fn flip_on(&mut self) {
-
-    }
-
-    fn flip_off(&mut self) {
-
-    }
-
-    fn get_flattened_trace() {
-        let mut a = vec![];
-        for step in self.
-    }
-}
-
-fn destroy(model: Model, n1: usize, n2: usize) -> Solution {
-    let mut trace: Trace = Trace::new(model);
-    trace.fission(n1 * n2);
-
-    return Solution {
-
-    }
-}
-*/
 
 //
 // Commands invoked in a single time step by the bots
@@ -154,7 +102,6 @@ impl CommandSet {
         }
     }
 }
-
 
 struct App {
     model: Model,
@@ -262,7 +209,7 @@ impl App {
 
         let (ord, cmds) = fission_to(&self.model.filled, &ps);
         self.fission_commands = cmds;
-        // let ord: Vec<usize> = (0..n_bots).collect();
+        // let ord: Vec<usize> = (1..(n_bots + 1)).collect();
         eprintln!("{:?}", ord);
 
         self.bots = (0..n_bots).map(|bid| {
@@ -303,17 +250,92 @@ impl App {
         }
     }
 
+    fn move_to_next_session(&mut self, mut p_diff: P) {
+        let zero = P::new(0, 0, 0);
+
+        let minmax5 = |x| { max(min(x, 5), -5) };
+        let minmax15 = |x| { max(min(x, 15), -15) };
+
+        eprintln!("{:?}", p_diff);
+        while p_diff != zero {
+            assert!(p_diff.y >= 0);
+            let cmd;
+            let p_move;
+
+            if p_diff.y > 5 || (p_diff.x, p_diff.z) == (0, 0) {
+                p_move = P::new(0, min(p_diff.y, 15), 0);
+                cmd = Command::SMove(p_move);
+            } else if p_diff.y > 0 {
+                let p_move1 = P::new(0, p_diff.y, 0);
+                let p_move2 = (if p_diff.x != 0 {
+                    P::new(minmax5(p_diff.x), p_diff.y, 0)
+                } else {
+                    P::new(0, p_diff.y, minmax5(p_diff.z))
+                });
+                p_move = p_move1 + p_move2;
+                cmd = Command::LMove(p_move1, p_move2)
+            } else {
+                if p_diff.x.abs() > 5 || p_diff.z == 0 {
+                    p_move = P::new(minmax15(p_diff.x), 0, 0);
+                    cmd = Command::SMove(p_move);
+                } else if p_diff.z.abs() > 5 || p_diff.x == 0 {
+                    p_move = P::new(0, 0, minmax15(p_diff.z));
+                    cmd = Command::SMove(p_move);
+                } else {
+                    let p_move1 = P::new(p_diff.x, 0, 0);
+                    let p_move2 = P::new(0, 0, p_diff.z);
+                    p_move = p_move1 + p_move2;
+                    cmd = Command::LMove(p_move1, p_move2);
+                }
+            }
+
+            p_diff -= p_move;
+            for bot in self.bots.iter_mut() {
+                bot.p += p_move;
+            }
+
+            eprintln!("{:?} {:?} {:?}", p_move, p_diff, cmd);
+        }
+    }
+
     fn main(&mut self) {
-        let r = self.model.r;
+        // TODO: use a bounding box
+        let r = self.model.r as i32;
+
         // TODO: hoge
-        let n_bots_x = min(6, (r - 1) / (CELL_LENGTH as usize) + 2);
+        let n_bots_x = min(6, ((r as usize) - 1) / (CELL_LENGTH as usize) + 2);
         let n_bots_z = n_bots_x;
         let n_bots = n_bots_x * n_bots_z;
-        eprintln!("R: {}, Bot grid: {} X {}", r, n_bots_x, n_bots_z);
-
         let bot_grid = self.fission(n_bots_x, n_bots_z);
-        eprintln!("{:?}", bot_grid);
-        eprintln!("{:?}", self.bots);
+        eprintln!("R: {}, Bot grid: {} X {} ({:?})", r, n_bots_x, n_bots_z, bot_grid);
+
+        let session_x_size = min(r as i32, ((n_bots_x - 1) as i32) * CELL_LENGTH + 1);
+        let session_z_size = min(r as i32, ((n_bots_z - 1) as i32) * CELL_LENGTH + 1);
+
+        // TODO: don't use the same size for two sessions?
+        let mut ix = 0;
+        while ix * session_x_size < r {
+            let session_x_offset = min(ix * session_x_size, r - session_x_size);
+
+            let mut iz = 0;
+            while iz * session_z_size < r {
+                let session_z_offset = min(iz * session_z_size, r - session_z_size);
+
+                if (session_x_offset, session_z_offset) != (0, 0) {
+                    let p0_crr = self.bots[bot_grid[0][0]].p;
+                    let p0_nxt = P::new(session_x_offset, r - 1, session_z_offset);
+                    // TODO: r - 1じゃなくてちゃんとy座標をする
+
+                    eprintln!("r={}, session_x_size={}, {}", r, session_x_size, session_z_size);
+                    eprintln!("Session: {:?} -> {:?}", p0_crr, p0_nxt);
+
+                    self.move_to_next_session(p0_nxt - p0_crr);
+                }
+
+                iz += 1;
+            }
+            ix += 1;
+        }
 
         self.destroy_session(&bot_grid);
 

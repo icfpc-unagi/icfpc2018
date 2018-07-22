@@ -229,6 +229,7 @@ impl BFS {
     }
 
     pub fn clear(&mut self) {
+        eprintln!("BFS: {} states touched", self.touched.len());
         for &s in self.touched.iter() {
             self.cost[s] = MAX_C;
             self.prev[s] = DUMMY_SEARCH_STATE;
