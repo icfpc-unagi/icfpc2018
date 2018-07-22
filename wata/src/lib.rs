@@ -270,7 +270,7 @@ pub fn read(path: &str) -> Model {
 	Model { r, filled }
 }
 
-pub fn fission_to(filled: &V3<bool>, to: &Vec<P>) -> Vec<usize> {
+pub fn fission_to(filled: &V3<bool>, to: &Vec<P>) -> (Vec<usize>, Vec<Command>)  {
 	unimplemented!()
 }
 
