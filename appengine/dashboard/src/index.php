@@ -26,6 +26,18 @@ if ($_GET['filter'] == 'public') {
     $where .= ' AND problem_is_public ';
 }
 
+if ($_GET['group'] == 'fa') {
+    $where .= ' AND problem_name LIKE "FA%" ';
+}
+
+if ($_GET['group'] == 'fd') {
+    $where .= ' AND problem_name LIKE "FD%" ';
+}
+
+if ($_GET['group'] == 'fr') {
+    $where .= ' AND problem_name LIKE "FR%" ';
+}
+
 Database::Command("
     CREATE TEMPORARY TABLE standing AS
     SELECT
@@ -255,6 +267,23 @@ echo 'All problems</option>';
 echo '<option value="public" ' .
      ($_GET['filter'] == 'public' ? ' selected' : '') . '>';
 echo 'Public only</option>';
+echo '</select>';
+
+echo '<select name="group">';
+echo '<option value="" ' .
+     ($_GET['group'] == '' ? ' selected' : '') . '>';
+echo 'All types</option>';
+echo '<option value="fa" ' .
+     ($_GET['group'] == 'fa' ? ' selected' : '') . '>';
+echo 'Assemble only</option>';
+echo '<option value="fd" ' .
+     ($_GET['group'] == 'fd' ? ' selected' : '') . '>';
+echo 'Disassemble only</option>';
+echo '<option value="fr" ' .
+     ($_GET['group'] == 'fr' ? ' selected' : '') . '>';
+echo 'Reassemble only</option>';
+echo '</select>';
+
 echo '<input type="submit" value="View" style="margin:0 10px">';
 echo '</form>';
 
