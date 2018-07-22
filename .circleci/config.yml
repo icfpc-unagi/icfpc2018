@@ -16,12 +16,6 @@ jobs:
       - restore_cache:
           key: project-cache
       - run:
-          name: Stable Build
-          command: |
-            rustc --version --verbose
-            cargo --version --verbose
-            cargo build
-      - run:
           name: Test
           command: make test
       - save_cache:
