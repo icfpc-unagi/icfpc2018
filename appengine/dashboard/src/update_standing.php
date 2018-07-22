@@ -49,7 +49,7 @@ foreach (explode('<h3', $data) as $details) {
 		}
 		$problem = $problems[$matches[0]];
 		$problem_id = $problem['problem_id'];
-		$run_score = intval($matches[1]);
+		$run_score = $matches[1];
 		$values[] = [
 			'program_id' => $program_id,
 			'problem_id' => $problem_id,
