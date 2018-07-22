@@ -347,7 +347,7 @@ echo '</thead>';
 $total_rankings = [];
 $rank = 0;
 $my_rank = 'Unknown';
-foreach (Database::Select('SELECT program_id, SUM(eval_score) AS total_score FROM standing GROUP BY program_id ORDER BY total_score DESC') as $program) {
+foreach (Database::Select('SELECT program_id, SUM(eval_score) AS total_score FROM (SELECT program_id, problem_id, MAX(eval_score) AS eval_score FROM standing GROUP BY program_id, problem_id) AS s GROUP BY program_id ORDER BY total_score DESC') as $program) {
     $rank++;
     if ($program['program_id'] == $program_id) {
         $my_rank = to_rank($rank);
