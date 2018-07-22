@@ -268,9 +268,9 @@ impl App {
             } else if p_diff.y > 0 {
                 let p_move1 = P::new(0, p_diff.y, 0);
                 let p_move2 = (if p_diff.x != 0 {
-                    P::new(minmax5(p_diff.x), p_diff.y, 0)
+                    P::new(minmax5(p_diff.x), 0, 0)
                 } else {
-                    P::new(0, p_diff.y, minmax5(p_diff.z))
+                    P::new(0, 0, minmax5(p_diff.z))
                 });
                 p_move = p_move1 + p_move2;
                 cmd = Command::LMove(p_move1, p_move2)
@@ -295,6 +295,7 @@ impl App {
             }
 
             eprintln!("{:?} {:?} {:?}", p_move, p_diff, cmd);
+            self.command_sets.push(CommandSet::new_uniform(self.bots.len(), cmd));
         }
     }
 
@@ -312,6 +313,7 @@ impl App {
         let session_x_size = min(r as i32, ((n_bots_x - 1) as i32) * CELL_LENGTH + 1);
         let session_z_size = min(r as i32, ((n_bots_z - 1) as i32) * CELL_LENGTH + 1);
 
+        // TODO: more efficient way to schedule the order of sessions
         // TODO: don't use the same size for two sessions?
         let mut ix = 0;
         while ix * session_x_size < r {
@@ -322,6 +324,7 @@ impl App {
                 let session_z_offset = min(iz * session_z_size, r - session_z_size);
 
                 if (session_x_offset, session_z_offset) != (0, 0) {
+
                     let p0_crr = self.bots[bot_grid[0][0]].p;
                     let p0_nxt = P::new(session_x_offset, r - 1, session_z_offset);
                     // TODO: r - 1じゃなくてちゃんとy座標をする
@@ -332,12 +335,12 @@ impl App {
                     self.move_to_next_session(p0_nxt - p0_crr);
                 }
 
+                self.destroy_session(&bot_grid);
+
                 iz += 1;
             }
             ix += 1;
         }
-
-        self.destroy_session(&bot_grid);
 
         // Turn on harmonics
         if self.command_sets.first_mut().unwrap().is_all_busy() {
@@ -351,11 +354,10 @@ impl App {
         }
         self.command_sets.last_mut().unwrap().flip_by_somebody();
 
-        /*
         for (i, command_set) in self.command_sets.iter().enumerate() {
-            println!("[ STEP {} ]", i);
-            command_set.emit();
-        }*/
+            // println!("[ STEP {} ]", i);
+            // command_set.emit();
+        }
 
         self.fusion();
 
