@@ -1,4 +1,5 @@
 use std::cmp::Ordering;
+use std::collections::BTreeSet;
 use std::collections::BinaryHeap;
 use *;
 
@@ -132,21 +133,11 @@ impl BFS {
 
     pub fn bfs<G: FnMut(P) -> bool, H: FnMut(P) -> bool>(
         &mut self,
-        filled: G,
+        mut filled: G,
         starts: &Vec<P>,
         goal: H,
     ) -> Option<P> {
         assert_eq!(self.touched.len(), 0); // To confirm that the workspace is clean
-        self.bfs_continue(filled, starts, goal)
-    }
-
-    pub fn bfs_continue<G: FnMut(P) -> bool, H: FnMut(P) -> bool>(
-        &mut self,
-        mut filled: G,
-        starts: &Vec<P>,
-        mut goal: H,
-    ) -> Option<P> {
-
         // Direction 6 is a special state only for the initialization
         for &p in starts.iter() {
             self.enqueue(
@@ -156,6 +147,38 @@ impl BFS {
                 &mut filled,
             );
         }
+
+        self.bfs_main(filled, goal)
+    }
+
+    pub fn bfs_continue<G: FnMut(P) -> bool>(
+        &mut self,
+        filled: G,
+        goal_set: &BTreeSet<P>,
+    ) -> Option<P> {
+
+        let mut cost = MAX_C;
+        let mut ret = None;
+        for &p in goal_set.iter() {
+            for d in 0..7 {
+                let s = SearchState { p, d };
+                if self.cost[s] < cost {
+                    cost = self.cost[s];
+                    ret = Some(p);
+                }
+            }
+        }
+        ret.or_else(||{
+            let goal = |p: P| goal_set.contains(&p);
+            self.bfs_main(filled, goal)
+        })
+    }
+
+    pub fn bfs_main<G: FnMut(P) -> bool, H: FnMut(P) -> bool>(
+        &mut self,
+        mut filled: G,
+        mut goal: H,
+    ) -> Option<P> {
 
         while !self.que.is_empty() {
             let HeapState { c, s } = self.que.pop().unwrap();

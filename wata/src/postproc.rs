@@ -10,19 +10,23 @@ pub fn fusion_all(matrix: &V3<bool>, mut positions: Vec<P>) -> Vec<Command> {
     let mut bfs = bfs::BFS::new(r);
     let filled_func = |p: P| { matrix[p] };
     /*
+    let goal_func = |p: P| { true };
+    bfs.bfs(filled_func, &vec![P::new(0, 0, 0)], goal_func);
+    */
     {
         let mut unreached_position_set = BTreeSet::from_iter(positions.iter());
-        let goal_func = |p: P| {
-            if unreached_position_set.remove(&p) {
-                eprintln!("Fusion BFS: {} / {} remaining", unreached_position_set.len(), positions.len());
-            }
-            false
+        {
+            let goal_func = |p: P| {
+                if unreached_position_set.remove(&p) {
+                    eprintln!("Fusion BFS: {} / {} remaining", unreached_position_set.len(), positions.len());
+                }
+                return unreached_position_set.len() == 0;
+            };
+            bfs.bfs(filled_func, &vec![P::new(0, 0, 0)], goal_func);
         }
-        bfs.bfs(filled_func, &vec![P::new(0, 0, 0)], goal_func);
         assert_eq!(unreached_position_set.len(), 0);  // Otherwise, some positions were unreachable
-        eprintln!("Fusion BFS: done", unreached_position_set.len(), positions.len());
+        // eprintln!("Fusion BFS: done");
     }
-    */
 
     let mut occupied = InitV3::new(false, r);
     loop {
@@ -49,7 +53,7 @@ pub fn fusion_all(matrix: &V3<bool>, mut positions: Vec<P>) -> Vec<Command> {
             }
         }
 
-        eprintln!("{:?}", positions);
+        // eprintln!("{:?}", positions);
         for (i, pos) in positions.iter_mut().enumerate() {
             if step_cmds[i] != Command::Wait {
                 continue;
@@ -60,13 +64,14 @@ pub fn fusion_all(matrix: &V3<bool>, mut positions: Vec<P>) -> Vec<Command> {
                 for (new_pos, cmd) in one_step(*pos, r, |p: P| matrix[p] || occupied[p]) {
                     pos_cands.insert(new_pos, cmd);
                 }
-                let goal_func = |p: P| { pos_cands.contains_key(&p) };
-                let new_pos = bfs.bfs_continue(filled_func, &vec![P::new(0, 0, 0)], goal_func).unwrap();
+                // let goal_func = |p: P| { pos_cands.contains_key(&p) };
+                let goal_set: BTreeSet<P> = pos_cands.keys().cloned().collect();
+                let new_pos = bfs.bfs_continue(filled_func, &goal_set).unwrap();
                 cmd = pos_cands[&new_pos];
+                // eprintln!("{:?} {:?}", pos, cmd);
                 set_occupied(*pos, cmd, &mut occupied);
                 *pos = new_pos;
             }
-            // eprintln!("{:?} {:?}", pos, cmd);
             step_cmds[i] = cmd;
         }
 
@@ -95,7 +100,7 @@ fn one_step<F: Fn(P) -> bool>(p: P, r: usize, is_bad: F) -> Vec<(P, Command)> {
         let mut p1 = p;
         for d1 in 1..=15 {
             p1 += v1;
-            if !p1.is_valid(r) {
+            if !p1.is_valid(r) || is_bad(p1) {
                 break;
             }
             ret.push((p1, Command::SMove(v1 * d1)));
@@ -107,7 +112,7 @@ fn one_step<F: Fn(P) -> bool>(p: P, r: usize, is_bad: F) -> Vec<(P, Command)> {
                     let mut p2 = p1;
                     for d2 in 1..=5 {
                         p2 += v2;
-                        if !p2.is_valid(r) {
+                        if !p2.is_valid(r) || is_bad(p2) {
                             break;
                         }
                         ret.push((p2, Command::LMove(v1 * d1, v2 * d2)));
