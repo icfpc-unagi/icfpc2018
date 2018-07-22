@@ -6,11 +6,12 @@ DEFINE_enum --values=chokudai,wata solver chokudai 'Solver to choose.'
 DEFINE_string version '' 'Version.'
 DEFINE_bool binary false 'Output as binary.'
 DEFINE_string --alias=o output '' 'Output file.'
-DEFINE_int problem 1 'Problem to solve.'
+DEFINE_string problem 'FA001' 'Problem to solve.'
 DEFINE_bool skip_postprocess false 'Skip post process.'
+DEFINE_bool simulate false 'Simulate.'
 eval "${IMOSH_INIT}"
 
-problem_file="$(dirname "${BASH_SOURCE}")/../data/problemsF/FA$(printf '%03d' "${FLAGS_problem}")"
+problem_file="$(dirname "${BASH_SOURCE}")/../data/problemsF/${FLAGS_problem}"
 
 run_solver() {
 	if [ "${FLAGS_solver}" == 'chokudai' ]; then
@@ -45,12 +46,25 @@ run_with_binarizer() {
 	fi
 }
 
-run() {
-	if [ "${FLAGS_output}" == '' ]; then
-		run_with_binarizer
+run_with_simulator() {
+	if (( FLAGS_simulate )); then
+		FLAGS_binary=1
+		run_with_binarizer | \
+			"$(dirname "${BASH_SOURCE}")/sim" \
+				--alsologtostderr="${FLAGS_alsologtostderr}" \
+				--logtostderr="${FLAGS_logtostderr}" \
+				-a /dev/stdin -p "${problem_file}_tgt.mdl"
 	else
-		run_with_binarizer > "${FLAGS_output}"
+		run_with_binarizer
 	fi
 }
 
-run
+run() {
+	if [ "${FLAGS_output}" == '' ]; then
+		run_with_simulator
+	else
+		run_with_simulator > "${FLAGS_output}"
+	fi
+}
+
+RUST_BACKTRACE=1 run
