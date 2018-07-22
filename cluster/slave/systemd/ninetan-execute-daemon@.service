@@ -4,7 +4,7 @@ Requires=docker.service
 After=docker.service
 
 [Service]
-ExecStart=/home/ninetan/bin/ninetan-execute-daemon
+ExecStart=/usr/bin/docker run --rm -v /efs:/efs -v /github:/github:ro -v /dropbox:/dropbox:ro -v /home/ninetan/bin:/home/ninetan/bin unagi2018/master:master /home/ninetan/bin/ninetan-execute-daemon
 Restart=always
 
 [Install]
