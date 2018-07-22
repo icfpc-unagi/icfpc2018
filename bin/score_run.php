@@ -14,7 +14,6 @@ $run = Database::SelectRow('
 	SELECT
 		run_id,
 		problem_name,
-		problem_data_hash,
 		run_stdout
 	FROM runs NATURAL JOIN problems
 	WHERE run_id = @run_id');
@@ -26,7 +25,7 @@ if (is_null($run)) {
 
 INFO("Preparing files...");
 file_put_contents(
-	'problem', FetchData('problems', 'problem_data', $run['problem_data_hash']));
+	'problem', file_get_contents(dirname(__FILE__) . '/../data/problemsF/' . $run['problem_name'] . '_tgt.mdl'));
 file_put_contents('assembly', $run['run_stdout']);
 file_put_contents('command', 'sim -a assembly -p problem --logtostderr');
 file_put_contents('wrapper', '

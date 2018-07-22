@@ -1,6 +1,6 @@
 <?php
 
-$program_id = intval($_GET['program_id']);
+$program_id = @intval($_GET['program_id']);
 
 ob_start();
 
@@ -61,7 +61,8 @@ foreach (Database::Select('
        SELECT problem_id, problem_name, problem_resolution, problem_has_target, problem_has_source
        FROM
                problems NATURAL JOIN
-               (SELECT problem_id FROM standing GROUP BY problem_id) AS s') as $problem) {
+               (SELECT problem_id FROM standing GROUP BY problem_id) AS s
+       ORDER BY problem_name') as $problem) {
 	$problems[$problem['problem_id']] = $problem;
 }
 
@@ -138,7 +139,7 @@ foreach ($problems as $problem) {
 	echo '<tr>';
 	$problem_name = problem_name($problem['problem_name']);
 	$resolution = $problem['problem_resolution'];
-	$default = $standings[$problem['problem_id']][9000];
+	$default = @$standings[$problem['problem_id']][9000];
 	$default_score = sprintf('%.2e', $default['run_score']);
 	echo "<td style=\"padding:0\"><span style=\"display:inline-block; height: 96px; vertical-align: middle;\">";
 	if ($problem['problem_has_target']) {
@@ -169,16 +170,16 @@ foreach ($problems as $problem) {
 	$default_score = intval($default['run_score']);
 	for ($i = $program_id ? -1 : 0; $i < $num_ranks; $i++) {
 		if ($i == -1) {
-			$program = $standings[$problem['problem_id']][$program_id];
+			$program = @$standings[$problem['problem_id']][$program_id];
 		} else {
-			$program = $ranked_programs[$i];
+			$program = @$ranked_programs[$i];
 		}
 		if (!$program) {
 			echo '<td class="rank"></td>';
 			continue;
 		}
 		$my_score = $program['run_score'];
-		$d = $default_score / $my_score;
+		$d = @($default_score / $my_score);
 		if ($d < 10) {
 			$d = sprintf('%.2f', $d);
 		} else if ($d < 100) {

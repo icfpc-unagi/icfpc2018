@@ -25,5 +25,5 @@ function FetchData($table, $column, $hash) {
 		return $data;
 	}
 	WARNING("Failed to fetch data: $hash from $table:$column");
-	return NULL;
+	exit(1);
 }
