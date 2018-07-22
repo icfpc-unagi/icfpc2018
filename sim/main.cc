@@ -182,8 +182,7 @@ struct State {
       std::vector<Coord> filled;
       std::vector<Coord> voided;
       std::vector<std::pair<int, Nanobot>> bots_activated;
-      std::unordered_map<int, Coord> fusionP;
-      std::unordered_map<Coord, int> fusionS;
+      std::unordered_map<std::pair<Coord, Coord>, std::pair<int, int>> fusion;
       std::unordered_map<Region, std::unordered_set<Coord>> gfilled;
       std::unordered_map<Region, std::unordered_set<Coord>> gvoided;
       std::unordered_set<Coord> volat;
@@ -285,12 +284,20 @@ struct State {
           int nd = (b /* & 0b11111000 */) >> 3;
           DCoord dc = near_diff(nd);
           VLOG(2) << "FusionP " << dc;
-          fusionP.emplace(i, bot.pos + dc);
+          fusion
+              .emplace(std::piecewise_construct,
+                       std::forward_as_tuple(bot.pos, bot.pos + dc),
+                       std::forward_as_tuple(-1, -1))
+              .first = i;
         } else if ((b & 0b00000111) == 0b00000110) {  // FusionS
           int nd = (b /* & 0b11111000 */) >> 3;
           DCoord dc = near_diff(nd);
           VLOG(2) << "FusionS " << dc;
-          fusionS.emplace(bot.pos + dc, i);
+          fusion
+              .emplace(std::piecewise_construct,
+                       std::forward_as_tuple(bot.pos + dc, bot.pos),
+                       std::forward_as_tuple(-1, -1))
+              .second = i;
         } else if ((b & 0b00000111) == 0b00000101) {  // Fission
           if (bot.seeds.empty()) {
             LOG(ERROR) << "Fission with no seeds";
@@ -390,31 +397,24 @@ struct State {
         ++commands;
       }
       // Group commands
-      for (auto& p : fusionP) {
-        Nanobot& primary = bots.find(p.first)->second;
-        auto it = fusionS.find(primary.pos);
-        if (it == fusionS.end()) {
+      for (auto& f : fusion) {
+        int pid = f.second.first;
+        int sid = f.second.second;
+        if (pid < 0) {
           LOG(ERROR) << "FusionP with no matching FusionS";
           return false;
         }
-        Nanobot& secondary = bots.find(it->second)->second;
-        if (p.second != secondary.pos) {
+        if (sid < 0) {
           LOG(ERROR) << "FusionP with no matching FusionS";
           return false;
         }
-        std::vector<uint8> merged(primary.seeds.size() +
-                                  secondary.seeds.size());
-        std::merge(primary.seeds.begin(), primary.seeds.end(),
-                   secondary.seeds.begin(), secondary.seeds.end(),
-                   merged.begin());
-        primary.seeds = std::move(merged);
-        bots.erase(it->second);
+        Nanobot& p = bots.find(pid)->second;
+        Nanobot& s = bots.find(sid)->second;
+        p.seeds.push_back(sid);
+        p.seeds.insert(p.seeds.end(), s.seeds.begin(), s.seeds.end());
+        std::sort(p.seeds.begin(), p.seeds.end());
+        bots.erase(sid);
         // s.energy -= 24;
-        fusionS.erase(it);
-      }
-      if (!fusionS.empty()) {
-        LOG(ERROR) << "FusionS with no matching FusionP";
-        return false;
       }
       for (const auto& p : gfilled) {
         int dim = p.first.dimension();
