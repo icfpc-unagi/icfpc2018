@@ -13,6 +13,8 @@ eval "${IMOSH_INIT}"
 
 problem_file="$(dirname "${BASH_SOURCE}")/../data/problemsF/${FLAGS_problem}"
 
+args=("${problem_file}_tgt.mdl" "$@")
+
 run_solver() {
 	if [ "${FLAGS_solver}" == 'chokudai' ]; then
 		version="${FLAGS_version}"
@@ -24,7 +26,7 @@ run_solver() {
 		else
 			LOG INFO "Running version ${version}."
 		fi
-		mono "$(dirname "${BASH_SOURCE}")/chokudai-solver/${version}.exe" "${problem_file}_tgt.mdl"
+		mono "$(dirname "${BASH_SOURCE}")/chokudai-solver/${version}.exe" "${args[@]}"
 		return
 	fi
 	LOG FATAL "Unknown solver: ${FLAGS_solver}"

@@ -18,7 +18,7 @@ if (is_null($program)) {
 }
 
 Database::Command('
-	INSERT INTO runs(problem_id, program_id, run_queue) SELECT
+	INSERT IGNORE INTO runs(problem_id, program_id, run_queue) SELECT
 		problem_id,
 		{program_id} AS program_id,
 		NOW() AS run_queue

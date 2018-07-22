@@ -4,7 +4,7 @@
 
 $problem_id = intval($_GET['problem_id']);
 $problem = Database::SelectRow('
-  SELECT problem_id, problem_name, problem_resolution
+  SELECT problem_id, problem_name, problem_resolution, problem_has_target
   FROM problems
   WHERE problem_id = {problem_id}',
   ['problem_id' => $problem_id]);
@@ -68,7 +68,7 @@ function render(data) {
     vis = initVisualizer({
       stats: true, screenshot: false, controls: true, noresize: true});
     var request = new XMLHttpRequest();
-    request.open("GET", "/problem_data.php?problem_id=<?php echo intval($_GET['problem_id']); ?>", true);
+    request.open("GET", "/problems/<?php echo $problem['problem_name'] . ($problem['problem_has_target'] ? '_tgt.mdl' : '_src.mdl') ; ?>", true);
     request.responseType = "blob";
     request.onload = function() {
       var reader = new FileReader();
@@ -111,8 +111,6 @@ foreach ($programs as $program) {
   echo "<tr><td>$rank</td><td style=\"overflow-x:hidden; white-space: nowrap\">{$program['program_name']}</td><td style=\"text-align:right;\" class=\"monospace\">{$program['run_score']}</td><td style=\"text-align:right\">$eval_score</td></tr>";
 }
 echo '</table>';
-
-print_r($runs);
 
 $body = ob_get_clean();
 include('template.html');

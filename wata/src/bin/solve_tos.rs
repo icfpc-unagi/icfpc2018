@@ -356,7 +356,7 @@ fn main() {
         for bot in bots.iter() {
             positions.push(bot.p);
         }
-        let cmds = postproc::fusion_all(filled, positions);
+        let cmds = postproc::fusion_all(&filled, positions);
         for cmd in cmds {
             println!("{}", cmd.to_string());
         }

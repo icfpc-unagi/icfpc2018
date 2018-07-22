@@ -167,7 +167,7 @@ foreach ($problems as $problem) {
 		}
 	}
 	$best_score = $ranked_programs[0]['run_score'];
-	$default_score = intval($default['run_score']);
+	$default_score = floatval($default['run_score']);
 	for ($i = $program_id ? -1 : 0; $i < $num_ranks; $i++) {
 		if ($i == -1) {
 			$program = @$standings[$problem['problem_id']][$program_id];

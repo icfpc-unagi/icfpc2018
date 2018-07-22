@@ -27,10 +27,7 @@ if (is_null($run)) {
 
 INFO("Preparing files...");
 file_put_contents(
-	'input', FetchData('problems', 'problem_data', $run['problem_data_hash']));
-file_put_contents(
-	'program', FetchData('programs', 'program_data', $run['program_data_hash']));
-chmod('program', 0755);
+	'input', file_get_contents(dirname(__FILE__) . '/../data/problemsF/' . $run['problem_name'] . '_tgt.mdl'));
 file_put_contents('command',
 	'problem_name=' . escapeshellarg($run['problem_name']) . "\n" .
 	$run['program_command']);

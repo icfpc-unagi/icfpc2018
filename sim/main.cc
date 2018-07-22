@@ -2,7 +2,6 @@
 #include <cstdio>
 #include <memory>
 #include <string>
-#include <string_view>
 #include <tuple>
 #include <unordered_map>
 #include <unordered_set>
@@ -10,9 +9,11 @@
 #include "base/base.h"
 #include "strings/join.h"
 
-DEFINE_string(p, "", "problem file (.mdl)");
+DEFINE_string(s, "", "srouce model file (.nbt)");
+DEFINE_string(t, "", "target model file (.nbt)");
+DEFINE_string(p, "", "(deprecated)");
 DEFINE_int32(r, 0, "R instead of problem; no model check");
-DEFINE_string(a, "", "assembly file (.nbt)");
+DEFINE_string(a, "", "(deprecated)");
 
 struct Coord {
   int x, y, z;
@@ -113,6 +114,8 @@ struct Matrix {
       }
     }
   }
+  Matrix(const Matrix& m) : r_(m.r_), m_(m.m_) {}
+  int r() const { return r_; }
   bool operator[](const Coord& c) const { return m_[index(c)]; }
   std::vector<bool>::reference operator[](const Coord& c) {
     return m_[index(c)];
@@ -123,7 +126,7 @@ struct Matrix {
  private:
   size_t index(const Coord& c) const { return (c.x * r_ + c.y) * r_ + c.z; }
 
-  int r_;
+  const int r_;
   std::vector<bool> m_;
 };
 
@@ -153,12 +156,12 @@ struct State {
   int steps = 0;
   int commands = 0;
 
-  State(int _r) : r(_r), matrix(_r) {
-    bots.emplace(
-        std::piecewise_construct, std::forward_as_tuple(0),
-        std::forward_as_tuple(kZero, std::initializer_list<uint8>{
-                                         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
-                                         13, 14, 15, 16, 17, 18, 19}));
+  State(int _r) : State(Matrix(_r)) {}
+  State(const Matrix& m) : r(m.r()), matrix(m) {
+    vector<uint8> seeds(39);
+    for (int i = 0; i < 39; ++i) seeds[i] = i + 1;
+    bots.emplace(std::piecewise_construct, std::forward_as_tuple(0),
+                 std::forward_as_tuple(kZero, seeds));
   }
   int64 energy() const {
     return energy_global + energy_local + energy_smove + energy_lmove +
@@ -476,30 +479,49 @@ struct State {
   }
 };
 
+std::unique_ptr<Matrix> read_model(const char* filename) {
+  FILE* fp = fopen(filename, "r");
+  CHECK(fp != nullptr) << "Failed to open " << filename;
+  int r = fgetc(fp);
+  CHECK_LE(r, 250);
+  std::vector<uint8> buf((r * r * r + 7) / 8);
+  CHECK(fread(buf.data(), buf.size(), 1, fp) == 1)
+      << "Failed to read " << filename;
+  fclose(fp);
+  return std::unique_ptr<Matrix>(new Matrix(r, buf));
+}
+
 int main(int argc, char** argv) {
   ParseCommandLineFlags(&argc, &argv);
-  LOG_IF(FATAL, FLAGS_a.empty() || FLAGS_p.empty() && FLAGS_r == 0)
-      << "Specify -a *.nbt -p *.mdl";
+
+  // compat
+  if (!FLAGS_p.empty()) FLAGS_t = FLAGS_p;
+  const char* tracefile = argc > 1 ? argv[1] : FLAGS_a.c_str();
+  CHECK(tracefile != nullptr)
+      << "Specify trace.nbt [ -s source.mdl ] [ -t target.mdl ]";
 
   int r = FLAGS_r;
-  std::unique_ptr<Matrix> model;
-  if (!FLAGS_p.empty()) {
-    FILE* fp = fopen(FLAGS_p.c_str(), "r");
-    LOG_IF(FATAL, fp == nullptr) << "Failed to read " << FLAGS_p;
-    r = fgetc(fp);
-    std::vector<uint8> buf((r * r * r + 7) / 8);
-    if (std::fread(buf.data(), buf.size(), buf.size(), fp) == 1) {
-      model = std::unique_ptr<Matrix>(new Matrix(r, buf));
-    } else {
-      LOG(ERROR) << "Failed to read " << FLAGS_p;
-    }
-    fclose(fp);
+  std::unique_ptr<Matrix> source, target;
+  if (!FLAGS_t.empty()) {
+    target = read_model(FLAGS_t.c_str());
+    r = target->r();
   }
+  if (!FLAGS_s.empty()) {
+    source = read_model(FLAGS_s.c_str());
+    if (target) {
+      CHECK_EQ(source->r(), target->r());
+    } else {
+      r = source->r();
+    }
+  } else {
+    source = std::unique_ptr<Matrix>(new Matrix(r));
+  }
+  CHECK_GT(r, 0);
 
-  FILE* fa = fopen(FLAGS_a.c_str(), "r");
-  LOG_IF(FATAL, fa == nullptr) << "Failed to read " << FLAGS_a;
+  FILE* fa = fopen(tracefile, "r");
+  CHECK(fa != nullptr) << "Failed to read " << tracefile;
 
-  State s(r);
+  State s(*source);
   bool success = s.execute(fa);
   LOG_IF(INFO, success) << "Halted successfully";
   LOG(INFO) << "Result:"
@@ -517,8 +539,7 @@ int main(int argc, char** argv) {
 
   if (!success) return 1;
 
-  LOG_IF(WARNING, !model) << "No model check";
-  if (model && s.matrix != *model) {
+  if (target && s.matrix != *target) {
     LOG(ERROR) << "Constructed model unmatched";
     return 1;
   }
