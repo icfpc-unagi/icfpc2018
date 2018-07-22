@@ -2,13 +2,20 @@
 
 require_once(dirname(__FILE__) . '/library/config.php');
 
+$run_id = intval(getenv('run_id'));
+
 INFO('Fetching a run...');
 
-Database::Command('
-	UPDATE runs SET
-		run_id = (@run_id := run_id),
-		run_queue = NOW() + INTERVAL 2000 SECOND
-	WHERE run_queue < NOW() LIMIT 1');
+if ($run_id) {
+	Database::Command('SET @run_id := {run_id}', ['run_id' => $run_id]);
+} else {
+	Database::Command('
+		UPDATE runs SET
+			run_id = (@run_id := run_id),
+			run_queue = NOW() + INTERVAL 2000 SECOND
+		WHERE run_queue < NOW() LIMIT 1');
+}
+
 $run = Database::SelectRow('
 	SELECT
 		run_id,
@@ -33,12 +40,21 @@ file_put_contents('command',
 	'problem_name=' . escapeshellarg($run['problem_name']) . "\n" .
 	$run['program_command']);
 file_put_contents('wrapper', '
-{ time bash ./command | head -c 30000000 >stdout; } 2>&1 | head -c 1000000 >stderr
+{ time bash ./command | head -c 30000000 >stdout; } 2>&1 | { head -c 1000000; cat >/dev/null; } >stderr
 ');
 
 INFO("Executing a run (run_id={$run['run_id']})...");
 $command = dirname(__FILE__) . '/timeout --timeout=1800 bash ./wrapper';
 system($command);
+
+if ($run_id) {
+	print_r([
+		'run_stdout' => filesize('stdout'),
+		'run_stderr' => filesize('stderr'),
+		'run_executed' => date('Y-m-d H:i:s'),
+	]);
+	exit();
+}
 
 Database::Command('
 	UPDATE runs
