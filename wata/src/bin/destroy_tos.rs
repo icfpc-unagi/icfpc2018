@@ -52,42 +52,31 @@ fn main() {
             eprintln!("");
         }
 
-        let mut bot_needed = mat![0; rx+1; rz+1];
-        for ix in 0..rx {
-            for iz in 0..rz {
-                let t = small[ix][iz] as i32;
+        let mut bot_pos = BTreeMap::new();
+        let mut orz = false;
+        for ix in 0..rx-1 {
+            for iz in 0..rz-1 {
+                let mut cnt = 0;
                 for a in 0..2 {
                     for b in 0..2 {
-                        bot_needed[ix+a][iz+b] += t;
-                    }
-                }
-            }
-        }
-        let mut n_bot = 0;
-        /*
-        let mut bot_pos = BTreeMap::new();
-        {
-            let mut orz = false;
-            for ix in 0..=rx {
-                for iz in 0..=rz {
-                    orz |= bot_needed[ix][iz] == 4;
-                    if bot_needed[ix][iz] > 0 {
-                        let bot_pos = if ix == 0 {
-                            0
-                        } else if ix == rx {
-                            r - 1
-                        } else {
+                        let t = small[ix+a][iz+b];
+                        cnt += t as i32;
+                        if t {
+                            bot_pos.insert(
+                                (ix, iz),
+                                P::new((bx[ix+1]+a-1) as i32, 0, (bz[iz+1]+b-1) as i32));
                         }
-
-                        n_bot += 1;
                     }
                 }
-            }
-            if orz || n_bot > 20 {
-                continue;
+                if cnt == 4 {
+                    orz = true;
+                }
             }
         }
-        */
+        if orz || bot_pos.len() > 20 {
+            continue;
+        }
+        eprintln!("ok");
     }
 }
 
