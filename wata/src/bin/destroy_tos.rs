@@ -34,26 +34,10 @@ fn main() {
             for (b0, b1) in bz_fix.iter().zip(bz_fix[1..].iter()) {
                 orz |= b1 - b0 <= 1;
             }
-            /*
-            if bx[ix+1] - bx[ix] <= 1 || bz[iz+1] - bz[iz] <= 1 {
-                eprintln!("orz {} {}", bx[ix+1] - bx[ix], bz[iz+1] - bz[iz]);
-                eprintln!("{:?} {}", bx, ix);
-                orz = true;
-            }
-            */
             if orz {
                 continue;
             }
         }
-        /*
-        eprintln!("({}, {})", bx, bz);
-        for line in small.iter() {
-            for &f in line.iter() {
-                eprint!("{}", if f { "#" } else { "." });
-            }
-            eprintln!("");
-        }
-        */
         let mut bx = Vec::new();
         bx.push(0);
         bx.append(&mut bx_fix.iter().map(|&t| t+1).collect());
@@ -153,6 +137,7 @@ fn main() {
         let sorted_bids = sorted_bids;
 
         let mut main_cmds = Vec::new();
+        /*
         {
             let mut cmds = Vec::new();
             cmds.push(Command::Flip);
@@ -161,6 +146,7 @@ fn main() {
             }
             main_cmds.append(&mut cmds);
         }
+        */
         loop {
             for ix in 1..rx {
                 for iz in 1..rz {
@@ -205,6 +191,7 @@ fn main() {
                 y_down += dy;
             }
         }
+        /*
         {
             let mut cmds = Vec::new();
             cmds.push(Command::Flip);
@@ -213,6 +200,7 @@ fn main() {
             }
             main_cmds.append(&mut cmds);
         }
+        */
 
         let mut positions = BTreeMap::new();
         for ixz in bot_xz.keys() {
