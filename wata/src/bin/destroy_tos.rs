@@ -68,6 +68,7 @@ fn main() {
         }
 
         let mut penalty = 0;
+        /*
         let mut parities = mat![false; 2; 2];
         for ix in 1..rx {
             for iz in 1..rz {
@@ -79,6 +80,7 @@ fn main() {
                 penalty += 10000 * parities[a][b] as i32;
             }
         }
+        */
 
         let mut bot_xz = BTreeMap::new();
         {
@@ -130,11 +132,11 @@ fn main() {
                 continue;
             }
         }
-        cands.push((penalty, bx, bz, small, rx, rz, bot_xz, parities));
+        cands.push((penalty, bx, bz, small, rx, rz, bot_xz));
     }
 
     cands.sort();
-    for (_penalty, bx, bz, small, rx, rz, bot_xz, parities) in cands.iter() {
+    for (_penalty, bx, bz, small, rx, rz, bot_xz) in cands.iter() {
         let rx = *rx;
         let rz = *rz;
         let mut y_high = 1.max(y_max as i32);
@@ -171,24 +173,17 @@ fn main() {
             main_cmds.append(&mut cmds);
         }
         loop {
-            for parity_ix in 0..2 {
-                for parity_iz in 0..2 {
-                    if !parities[parity_ix][parity_iz] {
-                        continue;
-                    }
-                    let mut ixzs = Vec::new();
-                    for ix in 1..rx {
-                        for iz in 1..rz {
-                            if (ix % 2, iz %2) == (parity_ix, parity_iz) && small[ix][iz] {
-                                ixzs.push((ix, iz));
-                            }
+            //let mut cmds = BTreeMap::new();
+            {
+                        let mut cmds = BTreeMap::new();
+                for ix in 1..rx {
+                    for iz in 1..rz {
+                        if !small[ix][iz] {
+                            continue;
                         }
-                    }
-                    for (ix, iz) in ixzs {
                         let bx2 = [bx[ix] as i32, bx[ix+1] as i32 - 1];
                         // let by2 = [y_low, y_high];
                         let bz2 = [bz[iz] as i32, bz[iz+1] as i32 - 1];
-                        let mut cmds = BTreeMap::new();
                         for a in 0..2 {
                             for b in 0..2 {
                                 let nd = P::new(bx2[a], 0, bz2[b]) - bot_xz[&((ix+a, iz+b), (1-a, 1-b))];
@@ -204,12 +199,12 @@ fn main() {
                                 }
                             }
                         }
+                    }
+                }
                         eprintln!("{:?}", cmds);
                         let mut cmds = sorted_bids.iter().map(|bid| cmds.get(&bid).unwrap_or(&Command::Wait)).cloned().collect();
                         eprintln!("{:?}", cmds);
                         main_cmds.append(&mut cmds);
-                    }
-                }
             }
             if y_low == 0 {
                 break;
