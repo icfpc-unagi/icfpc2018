@@ -5,7 +5,7 @@ require_once(dirname(__FILE__) . '/library/config.php');
 INFO('Fetching a run...');
 
 foreach (Database::Select('
-	SELECT problem_id, MAX(run_score) AS run_score
+	SELECT problem_id, MIN(run_score) AS run_score
 	FROM runs NATURAL JOIN problems
 	WHERE run_stdout IS NOT NULL AND
 	      run_score IS NOT NULL
