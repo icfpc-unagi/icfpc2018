@@ -1114,7 +1114,6 @@ fn fill_layer2<I: Fn(i32, i32) -> P, X: Fn(P) -> usize, Y: Fn(P) -> usize, Z: Fn
 			}
 			occupied[bots[b].p] = true;
 			bots[b].commands.push(command);
-			debug!(command);
 			set_occupied(bots[b].p, command, occupied);
 			match command {
 				Command::SMove(d) => {
