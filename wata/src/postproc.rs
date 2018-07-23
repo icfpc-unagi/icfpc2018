@@ -70,17 +70,9 @@ pub fn fusion_all(matrix: &V3<bool>, mut positions: Vec<P>) -> Vec<Command> {
                 if pos.z != 0 {
                     i += 1;
                 }
-                eprintln!("{}", i);
                 if t < cmds[i].len() {
                     ret.push(cmds[i][t]);
                 }
-                /*
-                let cmd = cmds[
-                    4 * (pos.x != 0) as usize
-                    + 2 * (pos.y != 0) as usize
-                    + (pos.z != 0) as usize
-                ][t];
-                */
             }
         }
         return ret;
