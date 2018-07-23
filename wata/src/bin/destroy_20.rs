@@ -57,22 +57,25 @@ pub fn destroy_small_face(model: Model) -> Vec<Command> {
                 1 + ((i >> 2) & 1) * (z_max - 1))
         }).collect();
 
-        for mask in [3,5,6].iter() {
-        let mut commands = vec![Command::Wait; 8];
+        for (mask, yy) in [(5, 2), (3, 3), (6, 3), (5, 1)].iter() {
+            let mut commands = vec![Command::Wait; 8];
 
-        for i in 0..8 {
-            let my_bid = order[i] - 1;  // ord is 1-indexed
-            let my_bot_p = bot_ps[i];
-            let my_gvoid_p = gvoid_ps[i];
+            for i in 0..8 {
+                if yy >> (i >> 1 & 1) & 1 == 0 {
+                    continue;
+                }
+                let my_bid = order[i] - 1;  // ord is 1-indexed
+                let my_bot_p = bot_ps[i];
+                let my_gvoid_p = gvoid_ps[i];
 
-            let opposite_gvoid_p = gvoid_ps[i ^ mask];
-            commands[my_bid] = Command::GVoid(
-                my_gvoid_p - my_bot_p,
-                opposite_gvoid_p - my_gvoid_p,
-            )
-        }
+                let opposite_gvoid_p = gvoid_ps[i ^ mask];
+                commands[my_bid] = Command::GVoid(
+                    my_gvoid_p - my_bot_p,
+                    opposite_gvoid_p - my_gvoid_p,
+                )
+            }
 
-        all.extend(commands);
+            all.extend(commands);
         }
     }
 
