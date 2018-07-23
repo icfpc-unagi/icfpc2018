@@ -25,3 +25,7 @@ debug:
 test: build
 	bash run-test.sh
 .PHONY: test
+
+install-cron: build test
+	gcloud app deploy --project icfpc-dashboard public_html/cron.yaml
+.PHONY: install-cron
