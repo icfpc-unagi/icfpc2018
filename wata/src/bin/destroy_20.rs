@@ -57,6 +57,7 @@ pub fn destroy_small_face(model: Model) -> Vec<Command> {
                 1 + ((i >> 2) & 1) * (z_max - 1))
         }).collect();
 
+        for mask in [3,5,6].iter() {
         let mut commands = vec![Command::Wait; 8];
 
         for i in 0..8 {
@@ -64,7 +65,7 @@ pub fn destroy_small_face(model: Model) -> Vec<Command> {
             let my_bot_p = bot_ps[i];
             let my_gvoid_p = gvoid_ps[i];
 
-            let opposite_gvoid_p = gvoid_ps[i ^ 7];
+            let opposite_gvoid_p = gvoid_ps[i ^ mask];
             commands[my_bid] = Command::GVoid(
                 my_gvoid_p - my_bot_p,
                 opposite_gvoid_p - my_gvoid_p,
@@ -72,6 +73,7 @@ pub fn destroy_small_face(model: Model) -> Vec<Command> {
         }
 
         all.extend(commands);
+        }
     }
 
     //
