@@ -340,7 +340,7 @@ fn fill_layer<I: Fn(i32, i32) -> P, X: Fn(P) -> usize, Y: Fn(P) -> usize, Z: Fn(
 			occupied[b.p] = true;
 		}
 		for b in bots.iter() {
-			bpos[get_x(b.p)][get_y(b.p)] = b.bid;
+			bpos[get_x(b.p)][get_z(b.p)] = b.bid;
 		}
 		// gfill
 		loop {
@@ -385,66 +385,71 @@ fn fill_layer<I: Fn(i32, i32) -> P, X: Fn(P) -> usize, Y: Fn(P) -> usize, Z: Fn(
 									gfill = vec![(i, Command::GFill(p - bots[i].p, q - p)), (j, Command::GFill(q - bots[j].p, p - q))];
 								}
 							} else {
-								// let min_x = get_x(p).min(get_x(q)) as i32;
-								// let max_x = get_x(p).max(get_x(q)) as i32;
-								// let min_z = get_z(p).min(get_z(q)) as i32;
-								// let max_z = get_z(p).max(get_z(q)) as i32;
-								// if (max_x - min_x) * (max_z - min_z) <= 4.max(max_size) || max_x - min_x > 30 || max_z - min_z > 30 || (p != pos(min_x, min_z) && p != pos(max_x, max_z)) {
-								// 	continue;
-								// }
-								// let mut i2 = !0;
-								// for p2 in pos(min_x, max_z).near(r) {
-								// 	if get_y(p2 + dir) != y0 || bpos[get_x(p2)][get_z(p2)] == !0 {
-								// 		continue;
-								// 	}
-								// 	let id = bpos[get_x(p2)][get_z(p2)];
-								// 	if id == i || id == j || bots[id].commands.len() > t {
-								// 		continue;
-								// 	}
-								// 	i2 = id;
-								// 	break;
-								// }
-								// if i2 == !0 {
-								// 	continue;
-								// }
-								// let mut j2 = !0;
-								// for q2 in pos(max_x, min_z).near(r) {
-								// 	if get_y(q2 + dir) != y0 || bpos[get_x(q2)][get_z(q2)] == !0 {
-								// 		continue;
-								// 	}
-								// 	let id = bpos[get_x(q2)][get_z(q2)];
-								// 	if id == i || id == j || id == i2 || bots[id].commands.len() > t {
-								// 		continue;
-								// 	}
-								// 	j2 = id;
-								// 	break;
-								// }
-								// if j2 == !0 {
-								// 	continue;
-								// }
-								// let mut count = 0;
-								// let mut ok = false;
-								// let mut ng = false;
-								// for a in region(p, q) {
-								// 	if occupied[a] || !target[a] {
-								// 		ng = true;
-								// 		break;
-								// 	}
-								// 	if ground[get_x(a)][get_z(a)] {
-								// 		ok = true;
-								// 	}
-								// 	if !filled[a] {
-								// 		count += 1;
-								// 	}
-								// }
-								// if ok && !ng && count > 4 && max_size.setmax(count) {
-								// 	gfill = vec![
-								// 		(i, Command::GFill(p - bots[i].p, q - p)),
-								// 		(j, Command::GFill(q - bots[j].p, p - q)),
-								// 		(i2, Command::GFill(pos(min_x, max_z) - bots[i2].p, pos(max_x, min_z) - pos(min_x, max_z))),
-								// 		(j2, Command::GFill(pos(max_x, min_z) - bots[j2].p, pos(min_x, max_z) - pos(max_x, min_z)))
-								// 	];
-								// }
+								let min_x = get_x(p).min(get_x(q)) as i32;
+								let max_x = get_x(p).max(get_x(q)) as i32;
+								let min_z = get_z(p).min(get_z(q)) as i32;
+								let max_z = get_z(p).max(get_z(q)) as i32;
+								if (max_x - min_x + 1) * (max_z - min_z + 1) <= 4.max(max_size) || max_x - min_x > 30 || max_z - min_z > 30 || (p != pos(min_x, min_z) && p != pos(max_x, max_z)) {
+									continue;
+								}
+								let mut i2 = !0;
+								for p2 in pos(min_x, max_z).near(r) {
+									if get_y(p2 + dir) != y0 || bpos[get_x(p2)][get_z(p2)] == !0 {
+										continue;
+									}
+									let id = bpos[get_x(p2)][get_z(p2)];
+									if id == i || id == j || bots[id].commands.len() > t {
+										continue;
+									}
+									i2 = id;
+									break;
+								}
+								if i2 == !0 {
+									continue;
+								}
+								let mut j2 = !0;
+								for q2 in pos(max_x, min_z).near(r) {
+									if get_y(q2 + dir) != y0 || bpos[get_x(q2)][get_z(q2)] == !0 {
+										continue;
+									}
+									let id = bpos[get_x(q2)][get_z(q2)];
+									if id == i || id == j || id == i2 || bots[id].commands.len() > t {
+										continue;
+									}
+									j2 = id;
+									break;
+								}
+								if j2 == !0 {
+									continue;
+								}
+								let mut count = 0;
+								let mut ok = false;
+								let mut ng = false;
+								for a in region(p, q) {
+									if occupied[a] || !target[a] {
+										ng = true;
+										break;
+									}
+									if ground[get_x(a)][get_z(a)] {
+										ok = true;
+									}
+									if !filled[a] {
+										count += 1;
+									}
+								}
+								if ok && !ng && count > 4 && max_size.setmax(count) {
+									gfill = vec![
+										(i, Command::GFill(p - bots[i].p, q - p)),
+										(j, Command::GFill(q - bots[j].p, p - q)),
+										(i2, Command::GFill(pos(min_x, max_z) - bots[i2].p, pos(max_x, min_z) - pos(min_x, max_z))),
+										(j2, Command::GFill(pos(max_x, min_z) - bots[j2].p, pos(min_x, max_z) - pos(max_x, min_z)))
+									];
+									for &(_, c) in &gfill {
+										if let Command::GFill(p, _) = c {
+											assert!(p.mlen() <= 2);
+										}
+									}
+								}
 							}
 						}
 					}
@@ -466,7 +471,7 @@ fn fill_layer<I: Fn(i32, i32) -> P, X: Fn(P) -> usize, Y: Fn(P) -> usize, Z: Fn(
 			}
 		}
 		for b in bots.iter() {
-			bpos[get_x(b.p)][get_y(b.p)] = !0;
+			bpos[get_x(b.p)][get_z(b.p)] = !0;
 		}
 		let mut near_bv = vec![vec![]; nbots];
 		for b in bots.iter() {
