@@ -1,0 +1,14 @@
+#!/bin/bash -eu
+
+target="$1"
+source="$2"
+
+[ -z "$1" -o -z "$2" ] && exit 1
+shift
+shift
+
+echo ---- DESTRUCTION ---- 1>&2
+"$(dirname ${BASH_SOURCE})/tos-001" "" "${source}" | grep -v 'HALT'
+
+echo ---- CONSTRUCTION ---- 1>&2
+mono "$(dirname ${BASH_SOURCE})/../chokudai-solver/014.exe" "${target}" | "$(dirname "${BASH_SOURCE}")/../run_postproc" "${target}" /dev/stdin

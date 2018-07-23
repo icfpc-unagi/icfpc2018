@@ -1,0 +1,14 @@
+#!/bin/bash -eu
+
+target="$1"
+source="$2"
+
+[ -z "$1" -o -z "$2" ] && exit 1
+shift
+shift
+
+echo ---- DESTRUCTION ---- 1>&2
+"$(dirname ${BASH_SOURCE})/iwiwi-004" "" "${source}" | grep -v 'HALT'
+
+echo ---- CONSTRUCTION ---- 1>&2
+"$(dirname ${BASH_SOURCE})/wata-005" "${target}" "" "$@"
