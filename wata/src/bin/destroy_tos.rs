@@ -24,7 +24,7 @@ fn main() {
             filled2_fix[x-1][z-1] = filled2[x][z]
         }
     }
-    for (bx_fix, bz_fix, small_fix) in xz::shrink(&filled2_fix, 30) {
+    for (bx_fix, bz_fix, small_fix) in xz::shrink(&filled2_fix, 31) {
         {
             let mut orz = false;
 
