@@ -706,12 +706,438 @@ fn fill_layer<I: Fn(i32, i32) -> P, X: Fn(P) -> usize, Y: Fn(P) -> usize, Z: Fn(
 	energy
 }
 
+fn make_jobs<I: Fn(i32, i32) -> P, X: Fn(P) -> usize, Y: Fn(P) -> usize, Z: Fn(P) -> usize, D: Fn(i32, i32) -> P>
+		(target: &V3<bool>, ground: &Vec<Vec<bool>>, pos: &I, get_x: &X, get_y: &Y, get_z: &Z, dxz: &D, y0: usize) -> Vec<Vec<P>> {
+	let r = target.len();
+	let mut ground = ground.clone();
+	let mut jobs = vec![];
+	let mut filled = mat![false; r; r];
+	let mut que = VecDeque::new();
+	for x in 0..r {
+		for z in 0..r {
+			if ground[x][z] {
+				que.push_back(pos(x as i32, z as i32));
+			}
+		}
+	}
+	macro_rules! push_adj {
+		($p:expr) => { {
+			let p = $p;
+			for q in p.adj(r) {
+				if get_y(q) == y0 && target[q] && !filled[get_x(q)][get_z(q)] && !ground[get_x(q)][get_z(q)] {
+					ground[get_x(q)][get_z(q)] = true;
+					que.push_back(q);
+				}
+			}
+		} };
+	}
+	while let Some(p) = que.pop_front() {
+		if filled[get_x(p)][get_z(p)] {
+			continue;
+		}
+		let mut lx = 0;
+		while lx <= 30 && get_x(p) as i32 - lx >= 0 && target[p + dxz(-lx, 0)] && !filled[get_x(p) - lx as usize][get_z(p)] {
+			lx += 1;
+		}
+		lx -= 1;
+		let mut rx = 0;
+		while lx + rx <= 30 && (get_x(p) + rx as usize) < r && target[p + dxz(rx, 0)] && !filled[get_x(p) + rx as usize][get_z(p)] {
+			rx += 1;
+		}
+		rx -= 1;
+		let mut lz = 0;
+		while lz <= 30 && get_z(p) as i32 - lz >= 0 && target[p + dxz(0, -lz)] && !filled[get_x(p)][get_z(p) - lz as usize] {
+			lz += 1;
+		}
+		lz -= 1;
+		let mut rz = 0;
+		while lz + rz <= 30 && (get_z(p) + rz as usize) < r && target[p + dxz(0, rz)] && !filled[get_x(p)][get_z(p) + rz as usize] {
+			rz += 1;
+		}
+		rz -= 1;
+		let mut num_x = 0;
+		for dx in -lx..=rx {
+			if !ground[(get_x(p) as i32 + dx) as usize][get_z(p)] {
+				num_x += 1;
+			}
+		}
+		let mut num_z = 0;
+		for dz in -lz..=rz {
+			if !ground[get_x(p)][(get_z(p) as i32 + dz) as usize] {
+				num_z += 1;
+			}
+		}
+		if lx + rx + num_x <= 3 && lz + rz + num_z <= 3 {
+			filled[get_x(p)][get_z(p)] = true;
+			jobs.push(vec![p]);
+			push_adj!(p);
+		} else if lx + rx + num_x > lz + rz + num_z {
+			lz = 0;
+			while lz <= 30 && get_z(p) as i32 - lz >= 0 {
+				let z = get_z(p) as i32 - lz;
+				let mut ok = true;
+				for x in get_x(p) as i32 - lx ..= get_x(p) as i32 + rx {
+					if !target[pos(x, z)] || filled[x as usize][z as usize] {
+						ok = false;
+						break;
+					}
+				}
+				if !ok {
+					break;
+				}
+				lz += 1;
+			}
+			lz -= 1;
+			rz = 0;
+			while lz + rz <= 30 && (get_z(p) + rz as usize) < r {
+				let z = get_z(p) as i32 + rz;
+				let mut ok = true;
+				for x in get_x(p) as i32 - lx ..= get_x(p) as i32 + rx {
+					if !target[pos(x, z)] || filled[x as usize][z as usize] {
+						ok = false;
+						break;
+					}
+				}
+				if !ok {
+					break;
+				}
+				rz += 1;
+			}
+			rz -= 1;
+			if lz + rz <= 3 {
+				for x in get_x(p) as i32 - lx ..= get_x(p) as i32 + rx {
+					filled[x as usize][get_z(p)] = true;
+				}
+				jobs.push(vec![p + dxz(-lx, 0), p + dxz(rx, 0)]);
+				for dx in -lx..=rx {
+					push_adj!(p + dxz(dx, 0));
+				}
+			} else {
+				for x in get_x(p) as i32 - lx ..= get_x(p) as i32 + rx {
+					for z in get_z(p) as i32 - lz ..= get_z(p) as i32 + rz {
+						filled[x as usize][z as usize] = true;
+					}
+				}
+				jobs.push(vec![p + dxz(-lx, -lz), p + dxz(-lx, rz), p + dxz(rx, -lz), p + dxz(rx, rz)]);
+				for dx in -lx..=rx {
+					for dz in -lz..=rz {
+						push_adj!(p + dxz(dx, dz));
+					}
+				}
+			}
+		} else {
+			lx = 0;
+			while lx <= 30 && get_x(p) as i32 - lx >= 0 {
+				let x = get_x(p) as i32 - lx;
+				let mut ok = true;
+				for z in get_z(p) as i32 - lz ..= get_z(p) as i32 + rz {
+					if !target[pos(x, z)] || filled[x as usize][z as usize] {
+						ok = false;
+						break;
+					}
+				}
+				if !ok {
+					break;
+				}
+				lx += 1;
+			}
+			lx -= 1;
+			rx = 0;
+			while lx + rx <= 30 && (get_x(p) + rx as usize) < r {
+				let x = get_x(p) as i32 + rx;
+				let mut ok = true;
+				for z in get_z(p) as i32 - lz ..= get_z(p) as i32 + rz {
+					if !target[pos(x, z)] || filled[x as usize][z as usize] {
+						ok = false;
+						break;
+					}
+				}
+				if !ok {
+					break;
+				}
+				rx += 1;
+			}
+			rx -= 1;
+			if lx + rx <= 3 {
+				for z in get_z(p) as i32 - lz ..= get_z(p) as i32 + rz {
+					filled[get_x(p)][z as usize] = true;
+				}
+				jobs.push(vec![p + dxz(0, -lz), p + dxz(0, rz)]);
+				for dz in -lz..=rz {
+					push_adj!(p + dxz(0, dz));
+				}
+			} else {
+				for x in get_x(p) as i32 - lx ..= get_x(p) as i32 + rx {
+					for z in get_z(p) as i32 - lz ..= get_z(p) as i32 + rz {
+						filled[x as usize][z as usize] = true;
+					}
+				}
+				jobs.push(vec![p + dxz(-lx, -lz), p + dxz(-lx, rz), p + dxz(rx, -lz), p + dxz(rx, rz)]);
+				for dx in -lx..=rx {
+					for dz in -lz..=rz {
+						push_adj!(p + dxz(dx, dz));
+					}
+				}
+			}
+		}
+	}
+	for x in 0..r {
+		for z in 0..r {
+			if target[pos(x as i32, z as i32)] {
+				assert!(filled[x][z]);
+			}
+		}
+	}
+	jobs
+}
+
+fn fill_layer2<I: Fn(i32, i32) -> P, X: Fn(P) -> usize, Y: Fn(P) -> usize, Z: Fn(P) -> usize, G: Fn(usize, usize) -> bool>
+			(target: &V3<bool>, filled: &mut V3<bool>, occupied: &mut InitV3<bool>, bots: &mut Vec<Bot>, dir: P,
+				pos: I, get_x: X, get_y: Y, get_z: Z, is_grounded: G, y0: usize) -> i64 {
+	let r = target.len();
+	let nbots = bots.len();
+	let mut rem = 0;
+	for x in 0..r {
+		for z in 0..r {
+			if target[pos(x as i32, z as i32)] {
+				rem += 1;
+			}
+		}
+	}
+	let mut energy = 0;
+	let first = get_y(bots[0].p) != y0;
+	if !first {
+		for b in bots.iter_mut() {
+			b.p -= dir;
+			b.commands.push(Command::SMove(-dir));
+		}
+		energy += 1;
+	}
+	let mut ground = mat![false; r; r];
+	for x in 0..r {
+		for z in 0..r {
+			if target[pos(x as i32, z as i32)] && (is_grounded(x, z) || !first && filled[pos(x as i32, z as i32) + dir]) {
+				ground[x][z] = true;
+			}
+		}
+	}
+	let dxz = |dx, dz| {
+		let mut d = pos(dx, dz);
+		if dir.x != 0 {
+			d.x = 0;
+		} else if dir.y != 0 {
+			d.y = 0;
+		} else {
+			d.z = 0;
+		}
+		d
+	};
+	let mut jobs = make_jobs(target, &ground, &pos, &get_x, &get_y, &get_z, &dxz, y0);
+	eprintln!("jobs = {:?}", jobs);
+	let mut t = bots[0].commands.len();
+	let mut endpoints = mat![(!0, !0); r; r];
+	let mut vtoj = mat![!0; r; r];
+	let mut job_grounded = vec![false; jobs.len()];
+	for j in 0..jobs.len() {
+		for i in 0..jobs[j].len() {
+			endpoints[get_x(jobs[j][i])][get_z(jobs[j][i])] = (j, i);
+		}
+		for p in region(jobs[j][0], jobs[j][jobs[j].len() - 1]) {
+			vtoj[get_x(p)][get_z(p)] = j;
+			if ground[get_x(p)][get_z(p)] {
+				job_grounded[j] = true;
+			}
+		}
+	}
+	for x in 0..r {
+		for z in 0..r {
+			if target[pos(x as i32, z as i32)] {
+				assert!(vtoj[x][z] != !0);
+			}
+		}
+	}
+	let mut finished = vec![false; jobs.len()];
+	let mut reserved: Vec<_> = jobs.iter().map(|job| vec![!0; job.len()]).collect();
+	let mut work = vec![(!0, !0); nbots];
+	while rem > 0 {
+		eprintln!("y = {}, rem = {}", y0, rem);
+		occupied.init();
+		for b in bots.iter() {
+			occupied[b.p] = true;
+		}
+		// job assign
+		loop {
+			let mut free = 0;
+			for b in 0..nbots {
+				if work[b].0 == !0 {
+					free += 1;
+				}
+			}
+			let mut min_d = i32::max_value();
+			let mut from = !0;
+			let mut to = (!0, !0);
+			for b in 0..nbots {
+				if work[b].0 != !0 {
+					continue;
+				}
+				for j in 0..jobs.len() {
+					if finished[j] || !job_grounded[j] || reserved[j][0] != !0 || free < jobs[j].len() {
+						continue;
+					}
+					for k in 0..jobs[j].len() {
+						if min_d.setmin((bots[b].p - jobs[j][k]).mlen()) {
+							from = b;
+							to = (j, k);
+						}
+					}
+				}
+			}
+			if from == !0 {
+				break;
+			}
+			work[from] = to;
+			let j = to.0;
+			reserved[j][to.1] = from;
+			for k in 0..jobs[j].len() {
+				if k == to.1 {
+					continue;
+				}
+				let mut min_d = i32::max_value();
+				let mut from2 = !0;
+				for b in 0..nbots {
+					if work[b].0 != !0 {
+						continue;
+					}
+					if min_d.setmin((bots[b].p - jobs[j][k]).mlen()) {
+						from2 = b;
+					}
+				}
+				work[from2] = (j, k);
+				reserved[j][k] = from2;
+			}
+		}
+		// job change
+		for b in 0..nbots {
+			if work[b].0 == !0 {
+				let mut best = 0;
+				let mut to = !0;
+				for b2 in 0..nbots {
+					if b2 == b || work[b2].0 == !0 {
+						continue;
+					}
+					let t = jobs[work[b2].0][work[b2].1];
+					let mut improve = (t - bots[b2].p).mlen() - (t - bots[b].p).mlen();
+					if best.setmax(improve) {
+						to = b2;
+					}
+				}
+				if to != !0 {
+					work[b] = work[to];
+					reserved[work[b].0][work[b].1] = b;
+					work[to] = (!0, !0);
+				}
+			}
+		}
+		
+		// fill
+		for j in 0..jobs.len() {
+			if finished[j] || reserved[j][0] == !0 {
+				continue;
+			}
+			let mut ok = true;
+			for k in 0..jobs[j].len() {
+				let b = reserved[j][k];
+				if !(bots[b].p - jobs[j][k]).is_near() {
+					ok = false;
+					break;
+				}
+			}
+			if !ok {
+				continue;
+			}
+			for p in region(jobs[j][0], jobs[j][jobs[j].len() - 1]) {
+				assert!(target[p]);
+				filled[p] = true;
+				for q in p.adj(r) {
+					if target[q] {
+						ground[get_x(q)][get_z(q)] = true;
+						job_grounded[vtoj[get_x(q)][get_z(q)]] = true;
+					}
+				}
+				rem -= 1;
+			}
+			if jobs[j].len() == 1 {
+				let b = reserved[j][0];
+				let bp = bots[b].p;
+				bots[b].commands.push(Command::Fill(jobs[j][0] - bp));
+			} else {
+				for k in 0..jobs[j].len() {
+					let b = reserved[j][k];
+					let bp = bots[b].p;
+					bots[b].commands.push(Command::GFill(jobs[j][k] - bp, jobs[j][jobs[j].len() - 1 - k] - jobs[j][k]));
+				}
+			}
+			finished[j] = true;
+			for k in 0..jobs[j].len() {
+				let b = reserved[j][k];
+				reserved[j][k] = !0;
+				work[b] = (!0, !0);
+			}
+		}
+		// move
+		for b in 0..bots.len() {
+			if bots[b].commands.len() > t {
+				continue;
+			} else if work[b].0 == !0 {
+				bots[b].commands.push(Command::Wait);
+				continue;
+			}
+			occupied[bots[b].p] = false;
+			let t = jobs[work[b].0][work[b].1];
+			let mut min_d = (bots[b].p - t).mlen();
+			let mut command = Command::Wait;
+			for (dx, dz, com) in one_step(get_x(bots[b].p) as i32, get_z(bots[b].p) as i32, r, |x, z| occupied[pos(x, z) - dir]) {
+				let p = bots[b].p + dxz(dx, dz);
+				if min_d.setmin((p - t).mlen()) {
+					command = match com {
+						Command::SMove(d) => {
+							Command::SMove(dxz(d.x, d.z))
+						},
+						Command::LMove(d1, d2) => {
+							Command::LMove(dxz(d1.x, d1.z), dxz(d2.x, d2.z))
+						},
+						_ => {
+							unreachable!()
+						}
+					};
+				}
+			}
+			occupied[bots[b].p] = true;
+			bots[b].commands.push(command);
+			set_occupied(bots[b].p, command, occupied);
+			match command {
+				Command::SMove(d) => {
+					bots[b].p += d;
+				},
+				Command::LMove(d1, d2) => {
+					bots[b].p += d1 + d2;
+				},
+				_ => {
+				}
+			}
+		}
+		energy += 1;
+		t += 1;
+	}
+	energy
+}
+
 fn fill_layer_z(target: &V3<bool>, filled: &mut V3<bool>, occupied: &mut InitV3<bool>, bots: &mut Vec<Bot>, z0: i32, dir: i32) -> i64 {
-	fill_layer(target, filled, occupied, bots, P::new(0, 0, dir), |x, y| P::new(x, y, z0), |p| p.x as usize, |p| p.z as usize, |p| p.y as usize, |_, y| y == 0, z0 as usize)
+	fill_layer2(target, filled, occupied, bots, P::new(0, 0, dir), |x, y| P::new(x, y, z0), |p| p.x as usize, |p| p.z as usize, |p| p.y as usize, |_, y| y == 0, z0 as usize)
 }
 
 fn fill_layer_bottom(target: &V3<bool>, filled: &mut V3<bool>, occupied: &mut InitV3<bool>, bots: &mut Vec<Bot>, y0: i32) -> i64 {
-	fill_layer(target, filled, occupied, bots, P::new(0, -1, 0), |x, z| P::new(x, y0, z), |p| p.x as usize, |p| p.y as usize, |p| p.z as usize, |_, _| y0 == 0, y0 as usize)
+	fill_layer2(target, filled, occupied, bots, P::new(0, -1, 0), |x, z| P::new(x, y0, z), |p| p.x as usize, |p| p.y as usize, |p| p.z as usize, |_, _| y0 == 0, y0 as usize)
 }
 
 fn target_bottom_up(target: &V3<bool>) -> V3<bool> {
