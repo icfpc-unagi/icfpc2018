@@ -15,4 +15,8 @@ Database::Command('
 
 $run_id = Database::SelectCell('SELECT @run_id');
 
-header('Location: /exec-trace-novis.php?run_id=' . $run_id);
+if ($run_id > 0) {
+	header('Location: /exec-trace-novis.php?run_id=' . $run_id);
+}
+
+echo 'No jobs';

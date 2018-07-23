@@ -117,8 +117,20 @@ if (!$program_id) {
         FROM runs');
     $stats = array_map('intval', $stats);
 
+    $stats += Database::SelectRow('
+        SELECT
+            SUM(official_score_queue < NOW() - INTERVAL 1 WEEK)
+                AS official_score_queue_week,
+            SUM(official_score_queue < NOW() - INTERVAL 1 DAY)
+                AS official_score_queue_day,
+            SUM(official_score_queue < NOW() - INTERVAL 1 HOUR)
+                AS official_score_queue_hour,
+            SUM(official_score_queue < NOW()) AS official_score_queue,
+            SUM(official_score_queue >= NOW()) AS official_score_queue_lock
+        FROM official_scores');
+
     // buggy : 1 day : normal : 1 week : emergency
-    foreach (['score_queue', 'run_queue'] as $queue) {
+    foreach (['score_queue', 'run_queue', 'official_score_queue'] as $queue) {
         $stats["{$queue}_emergency"] = $stats["{$queue}_week"];
         $stats["{$queue}_normal"] =
             $stats["{$queue}_day"] - $stats["{$queue}_week"];
@@ -129,6 +141,7 @@ if (!$program_id) {
     echo "<li>Executions: {$stats['executed_1m']} in 1 minute, {$stats['executed_10m']} in 10 minutes, {$stats['executed_1h']} in 1 hour, {$stats['executed_1d']} in 1 day\n";
     echo "<li>Execution queue: running={$stats['run_queue_lock']}, queued={$stats['run_queue']} (emergency={$stats['run_queue_emergency']}, normal={$stats['run_queue_normal']}, buggy={$stats['run_queue_buggy']})\n";
     echo "<li>Scoring queue: running={$stats['score_queue_lock']}, queued={$stats['score_queue']} (emergency={$stats['score_queue_emergency']}, normal={$stats['score_queue_normal']}, buggy={$stats['score_queue_buggy']})\n";
+    echo "<li>Official scoring queue: running={$stats['official_score_queue_lock']}, queued={$stats['official_score_queue']} (emergency={$stats['official_score_queue_emergency']}, normal={$stats['official_score_queue_normal']}, buggy={$stats['official_score_queue_buggy']})\n";
     echo '</ul>';
 }
 
