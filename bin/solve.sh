@@ -13,6 +13,7 @@ DEFINE_string run_postproc_binary "$(dirname "${BASH_SOURCE}")/run_postproc" "ru
 DEFINE_string trace_binarize_binary "$(dirname "${BASH_SOURCE}")/trace_binarize" "trace_binarize command."
 DEFINE_string sim_binary "$(dirname "${BASH_SOURCE}")/sim" "sim command"
 DEFINE_string command '' 'Optional command.'
+DEFINE_int v 0 'Optional v.'
 eval "${IMOSH_INIT}"
 
 problem_file="$(dirname "${BASH_SOURCE}")/../data/problemsF/${FLAGS_problem}"
@@ -91,6 +92,7 @@ run_with_simulator() {
 			"${FLAGS_sim_binary}" \
 				--alsologtostderr="${FLAGS_alsologtostderr}" \
 				--logtostderr="${FLAGS_logtostderr}" \
+				--v="${FLAGS_v}" \
 				"${simulator_flags[@]}"
 	else
 		run_with_binarizer

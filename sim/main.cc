@@ -194,10 +194,11 @@ struct State {
       std::unordered_map<Region, std::unordered_set<Coord>> gvoided;
       std::unordered_set<Coord> volat;
       bool halted = false;
+      bool force_ground_check = false;
 
       energy_global += harmonics ? 30 * r * r * r : 3 * r * r * r;
       energy_local += 20 * bots.size();
-      VLOG(3) << "time " << steps;
+      VLOG(2) << "time " << steps;
       for (auto& p : bots) {
         int i = p.first;
         Nanobot& bot = p.second;
@@ -207,7 +208,7 @@ struct State {
         int b = fgetc(fa);
         if (!check_eof(fa)) return false;
         if (b == 0b11111111) {  // Halt
-          VLOG(2) << "Halt";
+          VLOG(3) << "Halt";
           if (bot.pos != kZero) {
             LOG(ERROR) << "Halt at non-zero coordinate";
             return false;
@@ -222,16 +223,17 @@ struct State {
           }
           halted = true;
         } else if (b == 0b11111110) {  // Wait
-          VLOG(2) << "Wait";
+          VLOG(3) << "Wait";
         } else if (b == 0b11111101) {  // Flip
-          VLOG(2) << "Flip";
           harmonics = !harmonics;
+          force_ground_check = true;
+          VLOG(3) << "Flip (" << (harmonics ? "High" : "Low") << ")";
         } else if ((b & 0b11001111) == 0b00000100) {  // SMove
           int llda = (b & 0b00110000) >> 4;
           int b2 = fgetc(fa);
           if (!check_eof(fa)) return false;
           int lldi = (b2 & 0b00011111) - 15;
-          VLOG(2) << "SMove "
+          VLOG(3) << "SMove "
                   << "?xyz"[llda] << " " << lldi;
           if (llda == 0 || lldi == 0 || lldi < -15 || 15 < lldi) {
             LOG(ERROR) << "Invalid long linear coordinate difference";
@@ -256,7 +258,7 @@ struct State {
           if (!check_eof(fa)) return false;
           int sld1i = (b2 & 0b00001111) - 5;
           int sld2i = ((b2 /* & 0b11110000 */) >> 4) - 5;
-          VLOG(2) << "LMove "
+          VLOG(3) << "LMove "
                   << "?xyz"[sld1a] << " " << sld1i << " "
                   << "?xyz"[sld2a] << " " << sld2i;
           if (sld1a == 0 || sld1i == 0 || sld1i < -5 || 5 < sld1i ||
@@ -290,7 +292,7 @@ struct State {
         } else if ((b & 0b00000111) == 0b00000111) {  // FusionP
           int nd = (b /* & 0b11111000 */) >> 3;
           DCoord dc = near_diff(nd);
-          VLOG(2) << "FusionP " << dc;
+          VLOG(3) << "FusionP " << dc;
           fusion
               .emplace(std::piecewise_construct,
                        std::forward_as_tuple(bot.pos, bot.pos + dc),
@@ -299,7 +301,7 @@ struct State {
         } else if ((b & 0b00000111) == 0b00000110) {  // FusionS
           int nd = (b /* & 0b11111000 */) >> 3;
           DCoord dc = near_diff(nd);
-          VLOG(2) << "FusionS " << dc;
+          VLOG(3) << "FusionS " << dc;
           fusion
               .emplace(std::piecewise_construct,
                        std::forward_as_tuple(bot.pos + dc, bot.pos),
@@ -320,7 +322,7 @@ struct State {
           int j = bot.seeds[0];
           DCoord dc = near_diff(nd);
           Coord c = bot.pos + dc;
-          VLOG(2) << "Fission " << dc << " " << m;
+          VLOG(3) << "Fission " << dc << " " << m;
           if (!check_coord(c)) return false;
           if (!check_interference(&volat, c)) return false;
           bots_activated.emplace_back(
@@ -333,14 +335,14 @@ struct State {
           int nd = (b /* & 0b11111000 */) >> 3;
           DCoord dc = near_diff(nd);
           Coord c = bot.pos + dc;
-          VLOG(2) << "Fill " << dc;
+          VLOG(3) << "Fill " << dc;
           if (!check_coord(c)) return false;
           if (!check_interference(&volat, c)) return false;
           filled.push_back(c);
         } else if ((b & 0b00000111) == 0b00000010) {  // Void
           int nd = (b /* & 0b11111000 */) >> 3;
           DCoord dc = near_diff(nd);
-          VLOG(2) << "Void " << dc;
+          VLOG(3) << "Void " << dc;
           Coord c = bot.pos + dc;
           if (!check_coord(c)) return false;
           if (!check_interference(&volat, c)) return false;
@@ -353,7 +355,7 @@ struct State {
           int fdz = fgetc(fa);
           if (!check_eof(fa)) return false;
           DCoord fd(fdx - 30, fdy - 30, fdz - 30);
-          VLOG(2) << "GFill " << dc << " " << fd;
+          VLOG(3) << "GFill " << dc << " " << fd;
           if (fd.x > 30 || fd.y > 30 || fd.z > 30) {
             LOG(ERROR) << "Invalid far coordinate distance " << fd;
             return false;
@@ -379,7 +381,7 @@ struct State {
           int fdz = fgetc(fa);
           if (!check_eof(fa)) return false;
           DCoord fd(fdx - 30, fdy - 30, fdz - 30);
-          VLOG(2) << "GVoid " << dc << " " << fd;
+          VLOG(3) << "GVoid " << dc << " " << fd;
           if (fd.x > 30 || fd.y > 30 || fd.z > 30) {
             LOG(ERROR) << "Invalid far coordinate distance " << fd;
             return false;
@@ -415,6 +417,7 @@ struct State {
           LOG(ERROR) << "FusionP with no matching FusionS";
           return false;
         }
+        VLOG(2) << "Group: Fusion " << pid << " <-> " << sid;
         Nanobot& p = bots.find(pid)->second;
         Nanobot& s = bots.find(sid)->second;
         p.seeds.push_back(sid);
@@ -424,6 +427,7 @@ struct State {
         // s.energy -= 24;
       }
       for (const auto& p : gfilled) {
+        VLOG(2) << "Group: GFill " << p.first.a << "-" << p.first.b;
         int dim = p.first.dimension();
         if (dim == 0) {
           LOG(ERROR) << "GFill 0-dimension";
@@ -439,6 +443,7 @@ struct State {
         }
       }
       for (auto& p : gvoided) {
+        VLOG(2) << "Group: GVoid " << p.first.a << "-" << p.first.b;
         int dim = p.first.dimension();
         if (dim == 0) {
           LOG(ERROR) << "GVoid 0-dimension";
@@ -457,20 +462,48 @@ struct State {
       for (const Coord& c : filled) energy_fill += matrix[c] ? 6 : 12;
       for (const Coord& c : voided) energy_void += matrix[c] ? -12 : 3;
 
-      for (const Coord& c : voided) matrix[c] = false;
       // Check grounding
-      if (!harmonics) {
+      for (const Coord& c : voided) matrix[c] = false;
+      if (harmonics) {
+        for (const Coord& c : filled) matrix[c] = true;
+      } else if (force_ground_check) {
+        std::unordered_set<Coord> grounded;
+        for (int x = 0; x < r; ++x) {
+          for (int y = 0; y < r; ++y) {
+            for (int z = 0; z < r; ++z) {
+              Coord c{x, y, z};
+              if (!matrix[c]) continue;
+              std::vector<Coord> dfs(1, c);
+              std::unordered_set<Coord> dfs_c;
+              while (!dfs.empty()) {
+                c = dfs.back();
+                if (c.y == 0 || grounded.count(c) > 0) {
+                  grounded.insert(dfs_c.begin(), dfs_c.end());
+                  break;
+                }
+                dfs.pop_back();
+                for (const DCoord& d : kAxis) {
+                  Coord e = c + d;
+                  if (e.is_valid(r) && matrix[e] && dfs_c.insert(e).second) {
+                    dfs.push_back(e);
+                  }
+                }
+              }
+              if (dfs.empty()) {
+                LOG(ERROR) << "Ungrounded";
+                return false;
+              }
+            }
+          }
+        }
+      } else {
         // connections
         std::unordered_set<Coord> uncon(filled.begin(), filled.end());
         while (!uncon.empty()) {
           auto it = uncon.begin();
           Coord u = *it;
           uncon.erase(it);
-          static const auto k1N1 = {
-              DCoord{-1, 0, 0}, DCoord{0, -1, 0}, DCoord{0, 0, -1},
-              DCoord{1, 0, 0},  DCoord{0, 1, 0},  DCoord{0, 0, 1},
-          };
-          if (std::none_of(k1N1.begin(), k1N1.end(), [&](const DCoord& d) {
+          if (std::none_of(kAxis.begin(), kAxis.end(), [&](const DCoord& d) {
                 Coord v = u + d;
                 return v.y == 0 || matrix[v] || uncon.count(v);
               })) {
@@ -484,32 +517,30 @@ struct State {
         for (const Coord& v : voided) {
           for (const DCoord& a : kAxis) {
             Coord c = v + a;  // each 6-neighbor to the hole
-            if (c.is_valid(r) && matrix[c]) {
-              std::vector<Coord> s(1, c);  // bfs stack to the ground
-              std::unordered_set<Coord> t(s.begin(), s.end());
-              while (!s.empty()) {
-                Coord u = s.back();
-                if (u.y == 0 || g.count(u) > 0) {
-                  g.insert(t.begin(), t.end());
-                  break;
-                }
-                s.pop_back();
-                for (const DCoord& b : kAxis) {
-                  Coord d = u + b;
-                  if (d.is_valid(r) && matrix[d] && t.insert(d).second) {
-                    s.push_back(d);
-                  }
+            if (!c.is_valid(r) || !matrix[c]) continue;
+            std::vector<Coord> s(1, c);  // dfs stack to the ground
+            std::unordered_set<Coord> t(s.begin(), s.end());
+            while (!s.empty()) {
+              Coord u = s.back();
+              if (u.y == 0 || g.count(u) > 0) {
+                g.insert(t.begin(), t.end());
+                break;
+              }
+              s.pop_back();
+              for (const DCoord& b : kAxis) {
+                Coord d = u + b;
+                if (d.is_valid(r) && matrix[d] && t.insert(d).second) {
+                  s.push_back(d);
                 }
               }
-              if (s.empty()) {
-                LOG(ERROR) << "Ungrounded by Void voxel";
-                return false;
-              }
+            }
+            if (s.empty()) {
+              LOG(ERROR) << "Ungrounded by Void voxel";
+              return false;
             }
           }
         }
       }
-      for (const Coord& c : filled) matrix[c] = true;
       for (auto& bot : bots_activated) bots.emplace(std::move(bot));
       if (halted) bots.clear();
       ++steps;
@@ -603,7 +634,8 @@ int main(int argc, char** argv) {
   State s(*source);
   bool success = s.execute(fa);
   LOG_IF(INFO, FLAGS_stop_at != 0) << "Stopped";
-  LOG_IF(INFO, FLAGS_stop_at == 0 && success) << "Halted \x1b[32mSUCCESSFULLY\x1b[0m";
+  LOG_IF(INFO, FLAGS_stop_at == 0 && success)
+      << "Halted \x1b[32mSUCCESSFULLY\x1b[0m";
   LOG(INFO) << "Result:"
             << "\n           time : " << s.steps
             << "\n       commands : " << s.commands
