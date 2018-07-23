@@ -13,6 +13,9 @@ php "${unagi_package}"
 zip -e -P 6a0b30e3c9c24af2b7bf098ecc58be99 '../submissions.zip' *
 popd >/dev/null
 cp "$TMPDIR/submissions.zip" "${target}"
+echo 'Unagi Private ID: 6a0b30e3c9c24af2b7bf098ecc58be99'
 echo -n 'SHA256: '
 shasum -a 256 "$TMPDIR/submissions.zip" | cut -f1 -d' '
 echo "Outputted to ${target}."
+echo "Uploader URL: https://console.cloud.google.com/storage/browser/icfpc-dashboard.appspot.com?project=icfpc-dashboard"
+echo "Submission URL: https://icfpcontest2018.github.io/submit.html"
