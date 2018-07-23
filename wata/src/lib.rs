@@ -110,6 +110,12 @@ impl P {
 		}
 		near
 	}
+	pub fn is_near(&self) -> bool {
+		let dx = self.x.abs();
+		let dy = self.y.abs();
+		let dz = self.z.abs();
+		dx <= 1 && dy <= 1 && dz <= 1 && 0 < dx + dy + dz && dx + dy + dz <= 2
+	}
 	pub fn adj(&self, r: usize) -> Vec<P> {
 		let mut adj = vec![];
 		for d in &ADJ {
