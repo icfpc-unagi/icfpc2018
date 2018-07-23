@@ -1,5 +1,9 @@
 <?php
 
+if (!$_SERVER['USER_IS_ADMIN']) {
+	return;
+}
+
 $run_id = @intval($_GET['run_id']);
 $result = $_GET['result'];
 
