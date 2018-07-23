@@ -417,7 +417,7 @@ struct State {
           LOG(ERROR) << "FusionP with no matching FusionS";
           return false;
         }
-        VLOG(2) << "Group: Fusion " << pid << " <-> " <<  sid;
+        VLOG(2) << "Group: Fusion " << pid << " <-> " << sid;
         Nanobot& p = bots.find(pid)->second;
         Nanobot& s = bots.find(sid)->second;
         p.seeds.push_back(sid);
@@ -464,7 +464,9 @@ struct State {
 
       // Check grounding
       for (const Coord& c : voided) matrix[c] = false;
-      if (force_ground_check) {
+      if (harmonics) {
+        for (const Coord& c : filled) matrix[c] = true;
+      } else if (force_ground_check) {
         std::unordered_set<Coord> grounded;
         for (int x = 0; x < r; ++x) {
           for (int y = 0; y < r; ++y) {
@@ -494,8 +496,6 @@ struct State {
             }
           }
         }
-      } else if (harmonics) {
-        for (const Coord& c : filled) matrix[c] = true;
       } else {
         // connections
         std::unordered_set<Coord> uncon(filled.begin(), filled.end());
