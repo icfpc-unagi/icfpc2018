@@ -5,7 +5,7 @@ use super::super::*;
 
 use super::structs::{Bot, CommandSet};
 use super::harmonizer::Harmonizer;
-use super::util;
+use super::{util, from_wata};
 
 const MAX_N_BOTS: usize = 40;
 const DEFAULT_MAX_N_BOTS_X: i32 = 6;
@@ -402,6 +402,99 @@ impl App {
         self.bot_grid_bids = bot_grid_bids;
     }
 
+    pub fn fission_and_create_support(&mut self) {
+        // fissionの代わりとして使える。これを呼ぶとついでにサポートを構築する。
+
+        // We don't call `app.fission()`, do by ourselves.
+        let (n_bots_x, n_bots_z) = (self.bot_grid_relps.len(), self.bot_grid_relps[0].len());
+        let n_bots = n_bots_x * n_bots_z;
+
+        // Positions
+        let start_ps: Vec<_> = (0..n_bots).map(|i| {
+            let ix = i / n_bots_z;
+            let iz = i % n_bots_z;
+            self.session_absps[0] + self.bot_grid_relps[ix][iz]
+        }).collect();
+        let mut wata_bots = (0..n_bots).map(|i| {
+            from_wata::Bot {
+                bid: i,
+                p: start_ps[i],
+                commands: vec![],
+            }
+        }).collect();
+
+        let filled_with_support = from_wata::target_bottom_up(&self.model.filled);
+        let e = from_wata::destruct_support(&self.model.filled.clone(), &mut filled_with_support.clone(), &mut wata_bots);
+        eprintln!("Nazo energy: {}", e);
+
+        //
+        // !!! FISSION !!!
+        //
+        let fission_ps = wata_bots.iter().map(|b| b.p).collect();
+        let (ord, cmds) = fission_to(&filled_with_support, &fission_ps);
+        self.fission_commands = cmds;
+
+        //
+        // Bot permutation
+        //
+        self.bots = (0..n_bots)
+            .map(|bid| {
+                Bot {
+                    bid,
+                    p: P::new(-1, -1, -1), // Dummy
+                }
+            })
+            .collect();
+        for (&i, &p) in ord.iter().zip(start_ps.iter()) {
+            self.bots[i - 1].p = p; // ord is 1-indexed
+        }
+
+        let bot_grid_bids = (0..n_bots_x)
+            .map(|ix| {
+                (0..n_bots_z)
+                    .map(|iz| {
+                        ord[ix * n_bots_z + iz] - 1 // ord is 1-indexed
+                    })
+                    .collect()
+            })
+            .collect();
+        self.bot_grid_bids = bot_grid_bids;
+
+        //
+        // Support construction commands
+        //
+        let t_max = wata_bots.iter().map(|b| b.commands.len()).max().unwrap();
+        for t in (0..t_max).rev() {
+            let mut step_commands = vec![Command::Wait; n_bots];
+
+            for i in 0..n_bots {
+                let wb = &wata_bots[i];
+                // assert_eq!(wb.bid, bid);
+
+                let cmd;
+                if wb.commands.len() <= t {
+                    cmd = Command::Wait;
+                } else {
+                    cmd = wb.commands[t];
+                }
+
+                let cmd = match cmd {
+                    Command::SMove(p) => Command::SMove(-p),
+                    Command::LMove(p, q) => Command::LMove(-q, -p),
+                    Command::GVoid(p, q) => Command::GFill(p, q),
+                    Command::Void(p) => Command::Fill(p),
+                    c => c,
+                };
+
+                step_commands[ord[i] - 1] = cmd;
+            }
+            self.fission_commands.extend(step_commands);
+        }
+
+        eprintln!("{:?}", wata_bots);
+        self.harmonizer.model.filled = filled_with_support;
+    }
+
     pub fn destroy_all(&mut self) {
         for i in 0..self.session_absps.len() {
             // Transition
@@ -421,15 +514,6 @@ impl App {
         }
         self.harmonizer.check_complete();
     }
-
-    pub fn main(&mut self) {
-        self.prepare_bot_grid(DEFAULT_MAX_N_BOTS_X, DEFAULT_MAX_N_BOTS_Z);
-        self.prepare_session_schedule();
-        self.fission();
-        self.destroy_all();
-        self.harmonize();
-        self.fusion();
-    }
 }
 
 //
@@ -437,6 +521,22 @@ impl App {
 //
 pub fn destroy_large(model: Model) -> Vec<Command> {
     let mut app = App::new(&model);
-    app.main();
+    app.prepare_bot_grid(DEFAULT_MAX_N_BOTS_X, DEFAULT_MAX_N_BOTS_Z);
+    app.prepare_session_schedule();
+    app.fission();
+    app.destroy_all();
+    app.harmonize();
+    app.fusion();
+    return app.get_trace();
+}
+
+pub fn destroy_large_support(model: Model) -> Vec<Command> {
+    let mut app = destruction::strategy_large::App::new(&model);
+    app.prepare_bot_grid(DEFAULT_MAX_N_BOTS_X, DEFAULT_MAX_N_BOTS_Z);
+    app.prepare_session_schedule();
+    app.fission_and_create_support();  // YO
+    app.destroy_all();
+    app.harmonize();
+    app.fusion();
     return app.get_trace();
 }

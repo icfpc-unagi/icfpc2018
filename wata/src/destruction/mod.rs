@@ -3,9 +3,10 @@
 pub mod strategy_small;
 pub mod strategy_large;
 
-mod structs;
-mod harmonizer;
+pub mod structs;
+pub mod harmonizer;
 pub mod util;
+pub mod from_wata;
 
 use super::{Model, Command};
 

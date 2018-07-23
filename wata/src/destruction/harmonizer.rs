@@ -4,9 +4,9 @@ use super::structs::Bot;
 use std::collections::{HashMap, BinaryHeap};
 
 pub struct Harmonizer {
-    model: Model,  // Never modified!! Original!!
-    pos_to_step: V3<usize>,
-    step_to_poss: HashMap<usize, Vec<P>>,
+    pub model: Model,  // Never modified!! Original!!
+    pub pos_to_step: V3<usize>,
+    pub step_to_poss: HashMap<usize, Vec<P>>,
 }
 
 impl Harmonizer {
