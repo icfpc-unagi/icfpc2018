@@ -10,8 +10,8 @@ fn emit(commands: Vec<Command>) {
 }
 
 fn main() {
-    assert_eq!(std::env::args().nth(1).unwrap(), ""); // I am destroy-only solver
-    let file = std::env::args().nth(2).unwrap();
+    //solve FA011
+    let file = std::env::args().nth(1).unwrap();
     let model = wata::read(&file);
     let commands = destroy_small_face(model);
     emit(commands);
@@ -31,6 +31,18 @@ pub fn destroy_small_face(model: Model) -> Vec<Command> {
     }}}}
     let (x_max, y_max, z_max) = (x_max as i32, y_max as i32, z_max as i32);
 
+    let mut x_min = 99;
+    let mut y_min = 99;
+    let mut z_min = 99;
+    for x in 0..r { for y in 0..r { for z in 0..r { if model.filled[x][y][z] {
+        x_min = x_min.min(x);
+        y_min = y_min.min(y);
+        z_min = z_min.min(z);
+    }}}}
+    let (x_min, _y_min, z_min) = (x_min as i32, y_min as i32, z_min as i32);
+
+    eprintln!("{}, {}", x_min, x_max);
+
     let r = model.r as i32;
     let mut all = vec![];
 
@@ -39,11 +51,11 @@ pub fn destroy_small_face(model: Model) -> Vec<Command> {
     //
     let bot_ps = (0..8).map(|i| {
         P::new(
-            ((i >> 0) & 1) * (x_max + 1),
+            x_min - 1 + ((i >> 0) & 1) * (x_max - x_min + 2),
             ((i >> 1) & 1) * y_max,
-            ((i >> 2) & 1) * (z_max + 1))
+            z_min - 1 + ((i >> 2) & 1) * (z_max - z_min + 2))
     }).collect();
-    let (order, commands) = fission_to(&model.filled, &bot_ps);
+    let (order, commands) = fission_to(&mat![false; r as usize; r as usize; r as usize], &bot_ps);
     all.extend(commands);
 
     //
@@ -52,9 +64,9 @@ pub fn destroy_small_face(model: Model) -> Vec<Command> {
     {
         let gvoid_ps: Vec<_> = (0..8).map(|i| {
             P::new(
-                1 + ((i >> 0) & 1) * (x_max - 1),
+                x_min + ((i >> 0) & 1) * (x_max - x_min),
                 ((i >> 1) & 1) * y_max,
-                1 + ((i >> 2) & 1) * (z_max - 1))
+                z_min + ((i >> 2) & 1) * (z_max - z_min))
         }).collect();
 
         for mask in [3, 5, 6].iter() {
@@ -66,7 +78,7 @@ pub fn destroy_small_face(model: Model) -> Vec<Command> {
                 let my_gvoid_p = gvoid_ps[i];
 
                 let opposite_gvoid_p = gvoid_ps[i ^ mask];
-                commands[my_bid] = Command::GVoid(
+                commands[my_bid] = Command::GFill(
                     my_gvoid_p - my_bot_p,
                     opposite_gvoid_p - my_gvoid_p,
                 )
@@ -83,7 +95,7 @@ pub fn destroy_small_face(model: Model) -> Vec<Command> {
     for i in 0..8 {
         bot_ps2[order[i] - 1] = bot_ps[i];
     }
-    let commands = postproc::fusion_all(&mat![false; r as usize; r as usize; r as usize], bot_ps2);
+    let commands = postproc::fusion_all(&model.filled, bot_ps2);
     all.extend(commands);
 
     return all;
