@@ -5,6 +5,29 @@ use std::iter::FromIterator;
 
 
 pub fn fusion_all(matrix: &V3<bool>, mut positions: Vec<P>) -> Vec<Command> {
+    {
+        let position_set = BTreeSet::from_iter(positions.iter());
+        assert_eq!(position_set.len(), positions.len());
+    }
+    let x_set = BTreeSet::from_iter(positions.iter().map(|p: &P| p.x));
+    let y_set = BTreeSet::from_iter(positions.iter().map(|p: &P| p.y));
+    let z_set = BTreeSet::from_iter(positions.iter().map(|p: &P| p.z));
+    if positions.len() == 8 && [x_set, y_set, z_set].iter().all(|s| is_good_coord_set(s)) {
+        eprintln!("hand-crafted (^_^)");
+        // TODO: return
+    }
+    fusion_all_ver2(matrix, positions)
+}
+
+fn is_good_coord_set(set: &BTreeSet<i32>) -> bool {
+    set.len() == 2
+        && *set.iter().nth(0).unwrap() == 0
+        && *set.iter().nth(1).unwrap() <= 30
+        && *set.iter().nth(1).unwrap() >= 3
+}
+
+
+pub fn fusion_all_ver2(matrix: &V3<bool>, mut positions: Vec<P>) -> Vec<Command> {
     let mut return_cmds = Vec::new();
     let r = matrix.len();
     let mut bfs = bfs::BFS::new(r);
