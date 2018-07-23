@@ -85,10 +85,10 @@ print_r($problem);
 <option value="-60">1/60</option>
 <option value="-30">1/30</option>
 <option value="1">1</option>
-<option value="100">100</option>
+<option selected="" value="10">10</option>
 <option value="500">500</option>
 <option value="1000">1000</option>
-<option selected="" value="2000">2000</option>
+<option value="2000">2000</option>
 <option value="3000">3000</option>
 <option value="4000">4000</option>
 </select>
