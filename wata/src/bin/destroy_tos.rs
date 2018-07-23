@@ -68,8 +68,8 @@ fn main() {
         }
 
         let mut penalty = 0;
-        for ix in 1..=rx {
-            for iz in 1..=rz {
+        for ix in 1..rx {
+            for iz in 1..rz {
                 penalty += 10000 * small[ix][iz] as i32;
             }
         }
