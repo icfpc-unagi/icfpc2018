@@ -47,7 +47,8 @@ Database::Command("
     CREATE TEMPORARY TABLE standing AS
     SELECT
         run_id, $program_id_field, problem_id,
-        run_score, best_run_score, default_run_score,
+        run_score, official_score, official_score_queue,
+        best_run_score, default_run_score,
         (CASE WHEN best_run_score = default_run_score THEN
             FLOOR(LOG2(problem_resolution)) * 1000
         ELSE
@@ -66,7 +67,7 @@ Database::Command("
          FROM runs NATURAL JOIN problems
          GROUP BY problem_id) AS best_run_scores
             NATURAL LEFT JOIN
-        problems
+        problems NATURAL LEFT JOIN official_scores
     WHERE run_score IS NOT NULL $where
     ORDER BY problem_id, run_score ASC");
 
@@ -116,8 +117,20 @@ if (!$program_id) {
         FROM runs');
     $stats = array_map('intval', $stats);
 
+    $stats += Database::SelectRow('
+        SELECT
+            SUM(official_score_queue < NOW() - INTERVAL 1 WEEK)
+                AS official_score_queue_week,
+            SUM(official_score_queue < NOW() - INTERVAL 1 DAY)
+                AS official_score_queue_day,
+            SUM(official_score_queue < NOW() - INTERVAL 1 HOUR)
+                AS official_score_queue_hour,
+            SUM(official_score_queue < NOW()) AS official_score_queue,
+            SUM(official_score_queue >= NOW()) AS official_score_queue_lock
+        FROM official_scores');
+
     // buggy : 1 day : normal : 1 week : emergency
-    foreach (['score_queue', 'run_queue'] as $queue) {
+    foreach (['score_queue', 'run_queue', 'official_score_queue'] as $queue) {
         $stats["{$queue}_emergency"] = $stats["{$queue}_week"];
         $stats["{$queue}_normal"] =
             $stats["{$queue}_day"] - $stats["{$queue}_week"];
@@ -128,6 +141,7 @@ if (!$program_id) {
     echo "<li>Executions: {$stats['executed_1m']} in 1 minute, {$stats['executed_10m']} in 10 minutes, {$stats['executed_1h']} in 1 hour, {$stats['executed_1d']} in 1 day\n";
     echo "<li>Execution queue: running={$stats['run_queue_lock']}, queued={$stats['run_queue']} (emergency={$stats['run_queue_emergency']}, normal={$stats['run_queue_normal']}, buggy={$stats['run_queue_buggy']})\n";
     echo "<li>Scoring queue: running={$stats['score_queue_lock']}, queued={$stats['score_queue']} (emergency={$stats['score_queue_emergency']}, normal={$stats['score_queue_normal']}, buggy={$stats['score_queue_buggy']})\n";
+    echo "<li>Official scoring queue: running={$stats['official_score_queue_lock']}, queued={$stats['official_score_queue']} (emergency={$stats['official_score_queue_emergency']}, normal={$stats['official_score_queue_normal']}, buggy={$stats['official_score_queue_buggy']})\n";
     echo '</ul>';
 }
 
@@ -487,7 +501,18 @@ foreach ($problems as $problem) {
         if ($program['program_id'] >= 5000) {
             echo "<a href=\"/run.php?run_id={$program['run_id']}\">";
         }
-        echo "{$program['run_score']}";
+        if (preg_match('%^\d+$%', $program['run_score'])) {
+            if (!is_null($program['official_score_queue'])) {
+                $official = '⏳';
+            } else if (is_null($program['official_score'])) {
+                $official = '';
+            } else if ($program['run_score']== $program['official_score']) {
+                $official = '✅';
+            } else {
+                $official = '💣';
+            }
+        }
+        echo "$official{$program['run_score']}";
         if ($program['program_id'] >= 5000) {
             echo "</a>";
         }

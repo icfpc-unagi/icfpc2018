@@ -767,7 +767,8 @@ fn make_jobs<I: Fn(i32, i32) -> P, X: Fn(P) -> usize, Y: Fn(P) -> usize, Z: Fn(P
 				num_z += 1;
 			}
 		}
-		if lx + rx + num_x <= 3 && lz + rz + num_z <= 3 {
+		// if lx + rx + num_x <= 3 && lz + rz + num_z <= 3 {
+		if lx + rx + num_x <= 2 && lz + rz + num_z <= 2 {
 			filled[get_x(p)][get_z(p)] = true;
 			jobs.push(vec![p]);
 			push_adj!(p);
@@ -805,6 +806,7 @@ fn make_jobs<I: Fn(i32, i32) -> P, X: Fn(P) -> usize, Y: Fn(P) -> usize, Z: Fn(P
 			}
 			rz -= 1;
 			if lz + rz <= 3 {
+			// if lz + rz <= 2 {
 				for x in get_x(p) as i32 - lx ..= get_x(p) as i32 + rx {
 					filled[x as usize][get_z(p)] = true;
 				}
@@ -938,6 +940,7 @@ fn fill_layer2<I: Fn(i32, i32) -> P, X: Fn(P) -> usize, Y: Fn(P) -> usize, Z: Fn
 	let mut endpoints = mat![(!0, !0); r; r];
 	let mut vtoj = mat![!0; r; r];
 	let mut job_grounded = vec![false; jobs.len()];
+	let mut job_grounded2 = vec![false; jobs.len()];
 	for j in 0..jobs.len() {
 		for i in 0..jobs[j].len() {
 			endpoints[get_x(jobs[j][i])][get_z(jobs[j][i])] = (j, i);
@@ -965,6 +968,13 @@ fn fill_layer2<I: Fn(i32, i32) -> P, X: Fn(P) -> usize, Y: Fn(P) -> usize, Z: Fn
 		for b in bots.iter() {
 			occupied[b.p] = true;
 		}
+		let mut num_grounded = 0;
+		for j in 0..jobs.len() {
+			if !finished[j] && job_grounded[j] {
+				num_grounded += 1;
+			}
+		}
+		eprintln!("{} / {}", num_grounded, jobs.len());
 		// job assign
 		loop {
 			let mut free = 0;
@@ -993,7 +1003,25 @@ fn fill_layer2<I: Fn(i32, i32) -> P, X: Fn(P) -> usize, Y: Fn(P) -> usize, Z: Fn
 				}
 			}
 			if from == !0 {
-				break;
+				for b in 0..nbots {
+					if work[b].0 != !0 {
+						continue;
+					}
+					for j in 0..jobs.len() {
+						if finished[j] || !job_grounded2[j] || reserved[j][0] != !0 || free < jobs[j].len() {
+							continue;
+						}
+						for k in 0..jobs[j].len() {
+							if min_d.setmin((bots[b].p - jobs[j][k]).mlen()) {
+								from = b;
+								to = (j, k);
+							}
+						}
+					}
+				}
+				if from == !0 {
+					break;
+				}
 			}
 			work[from] = to;
 			let j = to.0;
@@ -1015,6 +1043,15 @@ fn fill_layer2<I: Fn(i32, i32) -> P, X: Fn(P) -> usize, Y: Fn(P) -> usize, Z: Fn
 				work[from2] = (j, k);
 				reserved[j][k] = from2;
 			}
+			// if job_grounded[j] {
+				for p in region(jobs[j][0], jobs[j][jobs[j].len() - 1]) {
+					for q in p.adj(r) {
+						if target[q] {
+							job_grounded2[vtoj[get_x(q)][get_z(q)]] = true;
+						}
+					}
+				}
+			// }
 		}
 		// job change
 		for b in 0..nbots {
@@ -1040,48 +1077,55 @@ fn fill_layer2<I: Fn(i32, i32) -> P, X: Fn(P) -> usize, Y: Fn(P) -> usize, Z: Fn
 		}
 		
 		// fill
-		for j in 0..jobs.len() {
-			if finished[j] || reserved[j][0] == !0 {
-				continue;
-			}
-			let mut ok = true;
-			for k in 0..jobs[j].len() {
-				let b = reserved[j][k];
-				if !(bots[b].p - jobs[j][k]).is_near() {
-					ok = false;
-					break;
+		loop {
+			let mut modified = false;
+			for j in 0..jobs.len() {
+				if finished[j] || reserved[j][0] == !0 || !job_grounded[j] {
+					continue;
 				}
-			}
-			if !ok {
-				continue;
-			}
-			for p in region(jobs[j][0], jobs[j][jobs[j].len() - 1]) {
-				assert!(target[p]);
-				filled[p] = true;
-				for q in p.adj(r) {
-					if target[q] {
-						ground[get_x(q)][get_z(q)] = true;
-						job_grounded[vtoj[get_x(q)][get_z(q)]] = true;
-					}
-				}
-				rem -= 1;
-			}
-			if jobs[j].len() == 1 {
-				let b = reserved[j][0];
-				let bp = bots[b].p;
-				bots[b].commands.push(Command::Fill(jobs[j][0] - bp));
-			} else {
+				let mut ok = true;
 				for k in 0..jobs[j].len() {
 					let b = reserved[j][k];
-					let bp = bots[b].p;
-					bots[b].commands.push(Command::GFill(jobs[j][k] - bp, jobs[j][jobs[j].len() - 1 - k] - jobs[j][k]));
+					if !(bots[b].p - jobs[j][k]).is_near() {
+						ok = false;
+						break;
+					}
 				}
+				if !ok {
+					continue;
+				}
+				for p in region(jobs[j][0], jobs[j][jobs[j].len() - 1]) {
+					assert!(target[p]);
+					filled[p] = true;
+					for q in p.adj(r) {
+						if target[q] {
+							ground[get_x(q)][get_z(q)] = true;
+							job_grounded[vtoj[get_x(q)][get_z(q)]] = true;
+						}
+					}
+					rem -= 1;
+				}
+				if jobs[j].len() == 1 {
+					let b = reserved[j][0];
+					let bp = bots[b].p;
+					bots[b].commands.push(Command::Fill(jobs[j][0] - bp));
+				} else {
+					for k in 0..jobs[j].len() {
+						let b = reserved[j][k];
+						let bp = bots[b].p;
+						bots[b].commands.push(Command::GFill(jobs[j][k] - bp, jobs[j][jobs[j].len() - 1 - k] - jobs[j][k]));
+					}
+				}
+				finished[j] = true;
+				for k in 0..jobs[j].len() {
+					let b = reserved[j][k];
+					reserved[j][k] = !0;
+					work[b] = (!0, !0);
+				}
+				modified = true;
 			}
-			finished[j] = true;
-			for k in 0..jobs[j].len() {
-				let b = reserved[j][k];
-				reserved[j][k] = !0;
-				work[b] = (!0, !0);
+			if !modified {
+				break;
 			}
 		}
 		// move
@@ -1386,9 +1430,13 @@ fn choose_z0(target: &V3<bool>, nbots: usize) -> (usize, usize) {
 	return (r - 1, 0);
 }
 
-fn solve_z(target: &V3<bool>, nbots: usize) -> (i64, Vec<Command>) {
+fn solve_z(target: &V3<bool>, nbots: usize, z0: Option<usize>, nbots1: Option<usize>) -> (i64, Vec<Command>) {
 	let r = target.len();
-	let (z0, nbots1) = choose_z0(target, nbots);
+	let (z0, nbots1) = if let (Some(z0), Some(nbots1)) = (z0, nbots1) {
+		(z0, nbots1)
+	} else {
+		choose_z0(target, nbots)
+	};
 	eprintln!("z0: {} / {}, {} : {}", z0, r, nbots1, nbots - nbots1);
 	let target2 = target_z(target, z0);
 	let mut init_all = vec![];
@@ -1514,13 +1562,13 @@ fn solve_z(target: &V3<bool>, nbots: usize) -> (i64, Vec<Command>) {
 	(energy, commands)
 }
 
-fn solve(target: &V3<bool>, nbots: usize, dir: &str) -> (i64, Vec<Command>) {
+fn solve(target: &V3<bool>, nbots: usize, dir: &str, z0: Option<usize>, nbots1: Option<usize>) -> (i64, Vec<Command>) {
 	match dir {
 		"y" => {
 			solve_bottom_up(target, nbots)
 		},
 		"z" => {
-			solve_z(target, nbots)
+			solve_z(target, nbots, z0, nbots1)
 		},
 		"x" => {
 			let r = target.len();
@@ -1532,7 +1580,7 @@ fn solve(target: &V3<bool>, nbots: usize, dir: &str) -> (i64, Vec<Command>) {
 					}
 				}
 			}
-			let (score, mut commands) = solve_z(&target2, nbots);
+			let (score, mut commands) = solve_z(&target2, nbots, z0, nbots1);
 			let f = |p: P| P::new(p.z, p.y, p.x);
 			for c in &mut commands {
 				*c = match *c {
@@ -1573,8 +1621,18 @@ fn main() {
 	} else {
 		"y".to_owned()
 	};
+	let z0 = if let Some(s) = std::env::args().nth(5) {
+		Some(s.parse().unwrap())
+	} else {
+		None
+	};
+	let nbots1 = if let Some(s) = std::env::args().nth(6) {
+		Some(s.parse().unwrap())
+	} else {
+		None
+	};
 	for &nbots in &nbots_list {
-		let (score, commands) = solve(&target, nbots, &dir);
+		let (score, commands) = solve(&target, nbots, &dir, z0, nbots1);
 		if min_score.setmin(score) {
 			min_commands = commands;
 		}

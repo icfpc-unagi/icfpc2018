@@ -22,6 +22,8 @@ pub struct App {
     pub bot_grid_relps: Vec<Vec<P>>,
     pub bot_grid_bids: Vec<Vec<usize>>,
     pub session_absps: Vec<P>,
+    // Piyo
+    pub dense_mode: bool,
 }
 
 const CELL_LENGTH: i32 = 30;
@@ -41,9 +43,12 @@ impl App {
             fusion_commands: vec![],
             command_sets: vec![],
             harmonizer: Harmonizer::new(model),
+            // Hoge
             bot_grid_relps: vec![vec![]],
             bot_grid_bids: vec![vec![]],
             session_absps: vec![],
+            // Piyo
+            dense_mode: false,
         }
     }
 
@@ -57,6 +62,10 @@ impl App {
 
         for parity_x in 0..2 {
             for parity_z in 0..2 {
+                if self.dense_mode && (parity_x, parity_z) != (0, 0) {
+                    continue;
+                }
+
                 let current_step = self.command_sets.len();
 
                 let mut cs = CommandSet::new(self.bots.len());
@@ -321,6 +330,39 @@ impl App {
         eprintln!();
     }
 
+    pub fn prepare_bot_grid_dense(&mut self, n_bots_x: i32, n_bots_z: i32) {
+        self.prepare_bot_grid(n_bots_x, n_bots_z);
+
+        let bot_grid_relps;
+        {
+            let bot_grid_relps_orig = &self.bot_grid_relps;
+            let (n_bots_x_orig, n_bots_z_orig) = (self.bot_grid_relps.len(), self.bot_grid_relps[0].len());
+
+            let n_es_x = n_bots_x_orig - 1;
+            let n_es_z = n_bots_z_orig - 1;
+
+            bot_grid_relps = (0..n_es_x * 2).map(|ix| {
+                (0..n_es_z * 2).map(|iz| {
+                    let mut p = bot_grid_relps_orig[(ix + 1) / 2][(iz + 1) / 2];
+                    if ix < n_es_x * 2 - 1 {
+                        p.x -= (ix % 2) as i32;
+                    }
+                    if iz < n_es_z * 2 - 1 {
+                        p.z -= (iz % 2) as i32;
+                    }
+                    p
+                }).collect()
+            }).collect();
+        }
+
+        self.bot_grid_relps = bot_grid_relps;
+        self.dense_mode = true;
+
+        eprintln!("Dense bot grid: {} X {} (actual size: {:?})", self.bot_grid_relps.len(), self.bot_grid_relps[0].len(), self.get_bot_grid_total_lengths());
+        eprintln!("({:?})", self.bot_grid_relps);
+        eprintln!();
+    }
+
     pub fn prepare_session_schedule(&mut self) {
         // TODO: y should be determined for every session
         let bb = util::get_bounding_box(&self.model.filled);
@@ -530,11 +572,26 @@ pub fn destroy_large(model: Model) -> Vec<Command> {
     return app.get_trace();
 }
 
-pub fn destroy_large_support(model: Model) -> Vec<Command> {
+pub fn destroy_large_with_config(
+    model: Model, n_bots_x: i32, n_bots_z: i32,
+    use_support: bool, use_dense: bool
+) -> Vec<Command> {
     let mut app = destruction::strategy_large::App::new(&model);
-    app.prepare_bot_grid(DEFAULT_MAX_N_BOTS_X, DEFAULT_MAX_N_BOTS_Z);
+
+    if use_dense {
+        app.prepare_bot_grid_dense(n_bots_x, n_bots_z);
+    } else {
+        app.prepare_bot_grid(n_bots_x, n_bots_z);
+    }
+
     app.prepare_session_schedule();
-    app.fission_and_create_support();  // YO
+
+    if use_support {
+        app.fission_and_create_support();
+    } else {
+        app.fission();
+    }
+
     app.destroy_all();
     app.harmonize();
     app.fusion();
