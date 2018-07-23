@@ -32,6 +32,38 @@ use super::super::*;
 use super::structs::{Bot, CommandSet};
 use super::harmonizer::Harmonizer;
 
+fn get_filled_positions(filled: &V3<bool>) -> Vec<P> {
+    let r = filled.len();
+    let mut ps = vec![];
+    for x in 0..r {
+        for y in 0..r {
+            for z in 0..r {
+                let p = P::new(x as i32, y as i32, z as i32);
+                if filled[p] {
+                    ps.push(p);
+                }
+            }
+        }
+    }
+    return ps;
+}
+
+fn get_bounding_box(filled: &V3<bool>) -> (P, P) {
+    let ps = get_filled_positions(filled);
+    return (
+        P::new(
+            ps.iter().map(|p| p.x).min().unwrap(),
+            ps.iter().map(|p| p.y).min().unwrap(),
+            ps.iter().map(|p| p.z).min().unwrap(),
+        ),
+        P::new(
+            ps.iter().map(|p| p.x).max().unwrap(),
+            ps.iter().map(|p| p.y).max().unwrap(),
+            ps.iter().map(|p| p.z).max().unwrap(),
+        )
+    );
+}
+
 struct App {
     model: Model,
     bots: Vec<Bot>,
@@ -153,9 +185,10 @@ impl App {
     fn fission(&mut self, n_bots_x: usize, n_bots_z: usize) -> Vec<Vec<usize>> {
         let r = self.model.r as i32;
         let n_bots = n_bots_x * n_bots_z;
+        let max_filled_y = get_bounding_box(&self.model.filled).1.y;
 
         // Positions
-        let p0 = P::new(0, (r as i32) - 1, 0); // TODO: better starting point
+        let p0 = P::new(0, max_filled_y + 1, 0); // TODO: better starting point
         let ps: Vec<P> = (0..n_bots)
             .map(|i| {
                 let ix = (i / n_bots_z) as i32;
@@ -336,6 +369,8 @@ impl App {
     pub fn main(&mut self) {
         // TODO: use a bounding box
         let r = self.model.r as i32;
+        let max_filled_y = get_bounding_box(&self.model.filled).1.y;
+        eprintln!("Max filled y: {}", max_filled_y);
 
         // TODO: hoge
         let n_bots_x = min(6, ((r as usize) - 1) / (CELL_LENGTH as usize) + 2);
@@ -362,7 +397,7 @@ impl App {
 
                 if (session_x_offset, session_z_offset) != (0, 0) {
                     let p0_crr = self.bots[bot_grid[0][0]].p;
-                    let p0_nxt = P::new(session_x_offset, r - 1, session_z_offset);
+                    let p0_nxt = P::new(session_x_offset, max_filled_y + 1, session_z_offset);
                     // TODO: r - 1じゃなくてちゃんとy座標をする
 
                     eprintln!(
