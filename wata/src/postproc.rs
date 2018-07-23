@@ -13,69 +13,86 @@ pub fn fusion_all(matrix: &V3<bool>, mut positions: Vec<P>) -> Vec<Command> {
     let y_set = BTreeSet::from_iter(positions.iter().map(|p: &P| p.y));
     let z_set = BTreeSet::from_iter(positions.iter().map(|p: &P| p.z));
     if positions.len() == 8 && [&x_set, &y_set, &z_set].iter().all(|s| is_good_coord_set(s)) {
-        eprintln!("hand-crafted (^_^)");
+        let x_max = *x_set.iter().max().unwrap();
+        let y_max = *y_set.iter().max().unwrap();
+        let z_max = *z_set.iter().max().unwrap();
 
-        let x_max = *x_set.iter().max().unwrap() as i32;
-        let y_max = *y_set.iter().max().unwrap() as i32;
-        let z_max = *z_set.iter().max().unwrap() as i32;
-
-        let x_mid = (x_max + 1) / 2;
-        let y_mid = (y_max + 1) / 2;
-        let z_mid = (z_max + 1) / 2;
-
-        use Command::*;
-        let cmds = vec![
-            vec![ // 0 0 0
-                Wait, Wait, FusionP(P::new(1, 0, 0)),
-                FusionP(P::new(0, 1, 0)), FusionP(P::new(1, 0, 0)),
-                FusionP(P::new(0, 0, 1)), FusionP(P::new(0, 1, 0)), Halt],
-            vec![ // 0 0 z
-                SMove(P::new(0, 0, z_mid-z_max)), SMove(P::new(0, 0, 1-z_mid)),
-                FusionS(P::new(0, 1, -1))],
-            vec![ // 0 y 0
-                SMove(P::new(0, y_mid-y_max, 0)), SMove(P::new(0, 1-y_mid, 0)),
-                FusionP(P::new(0, -1, 1)), FusionS(P::new(0, -1, 0))],
-            vec![ // 0 y z
-                SMove(P::new(0, y_mid-y_max, 0)), SMove(P::new(0, -y_mid, 0)),
-                FusionP(P::new(1, 0, 0)),
-                SMove(P::new(0, 0, z_mid-z_max)), SMove(P::new(0, 0, 1-z_mid)),
-                FusionS(P::new(0, 0, -1))],
-            vec![ // x 0 0
-                SMove(P::new(x_mid-x_max, 0, 0)), SMove(P::new(1-x_mid, 0, 0)),
-                FusionS(P::new(-1, 0, 0))],
-            vec![ // x 0 z
-                SMove(P::new(x_mid-x_max, 0, 0)), SMove(P::new(1-x_mid, 0, 0)),
-                FusionS(P::new(-1, 0, 0))],
-            vec![ // x y 0
-                SMove(P::new(0, y_mid-y_max, 0)), SMove(P::new(0, -y_mid, 0)),
-                SMove(P::new(x_mid-x_max, 0, 0)), SMove(P::new(1-x_mid, 0, 0)),
-                FusionS(P::new(-1, 0, 0))],
-            vec![ // x y z
-                SMove(P::new(x_mid-x_max, 0, 0)), SMove(P::new(-x_mid, 0, 0)),
-                SMove(P::new(0, 0, z_mid-z_max)), SMove(P::new(0, 0, -z_mid)),
-                SMove(P::new(0, y_mid-y_max, 0)), SMove(P::new(0, 1-y_mid, 0)),
-                FusionS(P::new(0, -1, 0))],
-        ];
-
-        let mut ret = Vec::new();
-        for t in 0..8 {
-            for pos in positions.iter() {
-                let mut i = 0;
-                if pos.x != 0 {
-                    i += 4;
-                }
-                if pos.y != 0 {
-                    i += 2;
-                }
-                if pos.z != 0 {
-                    i += 1;
-                }
-                if t < cmds[i].len() {
-                    ret.push(cmds[i][t]);
+        let mut orz = false;
+        for x in 0..=x_max {
+            for y in 0..=y_max {
+                for z in 0..=z_max {
+                    if ((x == 0 || x == x_max) as i32
+                        + (y == 0 || y == y_max) as i32
+                        + (z == 0 || z == z_max) as i32
+                        >= 2 // edge
+                    ) && matrix[P::new(x, y, z)] {
+                        orz = true;
+                    }
                 }
             }
         }
-        return ret;
+
+        if !orz {
+            eprintln!("hand-crafted (^_^)");
+
+            let x_mid = (x_max + 1) / 2;
+            let y_mid = (y_max + 1) / 2;
+            let z_mid = (z_max + 1) / 2;
+
+            use Command::*;
+            let cmds = vec![
+                vec![ // 0 0 0
+                    Wait, Wait, FusionP(P::new(1, 0, 0)),
+                    FusionP(P::new(0, 1, 0)), FusionP(P::new(1, 0, 0)),
+                    FusionP(P::new(0, 0, 1)), FusionP(P::new(0, 1, 0)), Halt],
+                vec![ // 0 0 z
+                    SMove(P::new(0, 0, z_mid-z_max)), SMove(P::new(0, 0, 1-z_mid)),
+                    FusionS(P::new(0, 1, -1))],
+                vec![ // 0 y 0
+                    SMove(P::new(0, y_mid-y_max, 0)), SMove(P::new(0, 1-y_mid, 0)),
+                    FusionP(P::new(0, -1, 1)), FusionS(P::new(0, -1, 0))],
+                vec![ // 0 y z
+                    SMove(P::new(0, y_mid-y_max, 0)), SMove(P::new(0, -y_mid, 0)),
+                    FusionP(P::new(1, 0, 0)),
+                    SMove(P::new(0, 0, z_mid-z_max)), SMove(P::new(0, 0, 1-z_mid)),
+                    FusionS(P::new(0, 0, -1))],
+                vec![ // x 0 0
+                    SMove(P::new(x_mid-x_max, 0, 0)), SMove(P::new(1-x_mid, 0, 0)),
+                    FusionS(P::new(-1, 0, 0))],
+                vec![ // x 0 z
+                    SMove(P::new(x_mid-x_max, 0, 0)), SMove(P::new(1-x_mid, 0, 0)),
+                    FusionS(P::new(-1, 0, 0))],
+                vec![ // x y 0
+                    SMove(P::new(0, y_mid-y_max, 0)), SMove(P::new(0, -y_mid, 0)),
+                    SMove(P::new(x_mid-x_max, 0, 0)), SMove(P::new(1-x_mid, 0, 0)),
+                    FusionS(P::new(-1, 0, 0))],
+                vec![ // x y z
+                    SMove(P::new(x_mid-x_max, 0, 0)), SMove(P::new(-x_mid, 0, 0)),
+                    SMove(P::new(0, 0, z_mid-z_max)), SMove(P::new(0, 0, -z_mid)),
+                    SMove(P::new(0, y_mid-y_max, 0)), SMove(P::new(0, 1-y_mid, 0)),
+                    FusionS(P::new(0, -1, 0))],
+            ];
+
+            let mut ret = Vec::new();
+            for t in 0..8 {
+                for pos in positions.iter() {
+                    let mut i = 0;
+                    if pos.x != 0 {
+                        i += 4;
+                    }
+                    if pos.y != 0 {
+                        i += 2;
+                    }
+                    if pos.z != 0 {
+                        i += 1;
+                    }
+                    if t < cmds[i].len() {
+                        ret.push(cmds[i][t]);
+                    }
+                }
+            }
+            return ret;
+        }
     }
     fusion_all_ver2(matrix, positions)
 }
