@@ -82,14 +82,13 @@ fn main() {
 
         let mut bot_xz = BTreeMap::new();
         {
-            let mut xz_tmp = BTreeMap::new();
+            let mut xz_tmp = mat![Vec::new(); rx; rz];
             for ix in 1..rx {
                 for iz in 1..rz {
                     for a in 0..2 {
                         for b in 0..2 {
                             if !small[ix-a][iz-b] {
-                                xz_tmp.insert(
-                                    (ix, iz),
+                                xz_tmp[ix][iz].push(
                                     P::new((bx[ix]-a) as i32, 0, (bz[iz]-b) as i32));
                             }
                         }
@@ -100,18 +99,21 @@ fn main() {
             let mut orz = false;
             for ix in 1..rx {
                 for iz in 1..rz {
-                    let mut cnt = 0;
+                    let mut ab = Vec::new();
                     for a in 0..2 {
                         for b in 0..2 {
-                            let t = small[ix-a][iz-b];
-                            cnt += t as i32;
+                            if small[ix-a][iz-b] {
+                                ab.push((a, b));
+                            }
                         }
                     }
-                    if cnt == 4 {
+                    if ab.len() > 2 {
                         orz = true;
-                    } else if cnt > 0 {
-                        penalty += 1 * cnt;
-                        bot_xz.insert((ix, iz), xz_tmp[&(ix, iz)]);
+                    } else if ab.len() > 0 {
+                        penalty += 1 * ab.len() as i32;
+                        for ((a,b), pos) in ab.iter().zip(xz_tmp[ix][iz].iter()) {
+                            bot_xz.insert(((ix, iz), (*a, *b)), *pos);
+                        }
                     }
                 }
             }
@@ -189,14 +191,14 @@ fn main() {
                         let mut cmds = BTreeMap::new();
                         for a in 0..2 {
                             for b in 0..2 {
-                                let nd = P::new(bx2[a], 0, bz2[b]) - bot_xz[&(ix+a, iz+b)];
+                                let nd = P::new(bx2[a], 0, bz2[b]) - bot_xz[&((ix+a, iz+b), (1-a, 1-b))];
                                 {
-                                    let bid = bids_low[&(ix+a, iz+b)];
+                                    let bid = bids_low[&((ix+a, iz+b), (1-a, 1-b))];
                                     let fd = P::new(bx2[1-a] - bx2[a], y_high - y_low, bz2[1-b] - bz2[b]);
                                     cmds.insert(bid, Command::GVoid(nd, fd));
                                 }
                                 {
-                                    let bid = bids_high[&(ix+a, iz+b)];
+                                    let bid = bids_high[&((ix+a, iz+b), (1-a, 1-b))];
                                     let fd = P::new(bx2[1-a] - bx2[a], y_low - y_high, bz2[1-b] - bz2[b]);
                                     cmds.insert(bid, Command::GVoid(nd, fd));
                                 }
