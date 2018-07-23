@@ -87,7 +87,7 @@ impl std::str::FromStr for Command {
             }
             "FUSIONS" => {
                 assert_eq!(tokens.len(), 4);
-                Command::FusionP(parse_nd(&tokens[1..]))
+                Command::FusionS(parse_nd(&tokens[1..]))
             }
             "FISSION" => {
                 assert_eq!(tokens.len(), 5);
