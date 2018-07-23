@@ -22,6 +22,7 @@ name="$2"
 bin_directory="$(cd "$(dirname "${BASH_SOURCE}")" && pwd)"
 git_directory="$(cd "$(pwd)/$(git rev-parse --show-cdup)" && pwd)"
 
+set -x
 pushd "${git_directory}" >/dev/null
 cargo build --release --package wata --bin "${target}"
 cp "./target/release/${target}" "./bin/solvers/${name}.Darwin"
@@ -31,3 +32,4 @@ scp -S unagi-ssh master:${USER}/target/release/${target} "./bin/solvers/${name}.
 pwd
 cp "./bin/solvers/destroy_iwiwi" "./bin/solvers/${name}"
 chmod +x "./bin/solvers/${name}"{,.Darwin,.Linux}
+set +x
