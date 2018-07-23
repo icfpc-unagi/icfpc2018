@@ -22,4 +22,5 @@ test: ../bazel-bin/sim/sim
 	$< ./tests/gvoid.nbt -s ../data/problemsF/FD001_src.mdl --logtostderr | grep energy:9475625
 	$< ./tests/flip.nbt -s ../data/problemsF/FD181_src.mdl --logtostderr --stop_at=102 2>&1 | tee /dev/stderr | grep -q Ungrounded
 	$< ./tests/flip-pass.nbt -s ../data/problemsF/FR035_src.mdl -t ../data/problemsF/FR035_tgt.mdl --logtostderr | grep energy:98172217
+	$< ./tests/iwiwi-sup-004_FD186.nbt -s ../data/problemsF/FD186_src.mdl --logtostderr --stop_at=43 2>&1 | tee /dev/stderr | grep -q Ungrounded
 .PHONY: test

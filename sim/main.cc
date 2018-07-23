@@ -17,6 +17,7 @@ DEFINE_string(a, "", "(deprecated)");
 DEFINE_string(output_model, "", "output final state as model file");
 DEFINE_string(output_xmodel, "", "output final state as extended model file");
 DEFINE_int32(stop_at, 0, "time step to stop (0 to not stop)");
+DEFINE_bool(force_ground_check, false, "always check global grounding");
 
 struct Coord {
   int x, y, z;
@@ -194,7 +195,7 @@ struct State {
       std::unordered_map<Region, std::unordered_set<Coord>> gvoided;
       std::unordered_set<Coord> volat;
       bool halted = false;
-      bool force_ground_check = false;
+      bool force_ground_check = FLAGS_force_ground_check;
 
       energy_global += harmonics ? 30 * r * r * r : 3 * r * r * r;
       energy_local += 20 * bots.size();
@@ -499,18 +500,33 @@ struct State {
       } else {
         // connections
         std::unordered_set<Coord> uncon(filled.begin(), filled.end());
+        std::unordered_set<Coord> cache;
         while (!uncon.empty()) {
           auto it = uncon.begin();
-          Coord u = *it;
+          Coord c = *it;
           uncon.erase(it);
-          if (std::none_of(kAxis.begin(), kAxis.end(), [&](const DCoord& d) {
-                Coord v = u + d;
-                return v.y == 0 || matrix[v] || uncon.count(v);
-              })) {
-            LOG(ERROR) << "Ungrounded Full voxel " << u;
+          std::vector<Coord> s(1, c);
+          std::unordered_set<Coord> t(s.begin(), s.end());
+          while (!s.empty()) {
+            Coord u = s.back();
+            if (u.y == 0 || matrix[u] || cache.count(u) > 0) {
+              cache.insert(t.begin(), t.end());
+              break;
+            }
+            s.pop_back();
+            for (const DCoord& b : kAxis) {
+              Coord d = u + b;
+              if (d.is_valid(r) && (matrix[d] || uncon.count(d) > 0) &&
+                  t.insert(d).second) {
+                s.push_back(d);
+              }
+            }
+          }
+          if (s.empty()) {
+            LOG(ERROR) << "Ungrounded by Full voxel";
             return false;
           }
-          matrix[u] = true;
+          matrix[c] = true;
         }
         // disconnections
         std::unordered_set<Coord> g;  // known to be grounded
