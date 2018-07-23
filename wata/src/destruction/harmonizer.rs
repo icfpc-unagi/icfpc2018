@@ -40,6 +40,27 @@ impl Harmonizer {
         }
     }
 
+    pub fn check_complete(&self) {
+        let r = self.model.r;
+        let mut f = false;
+        for x in 0..r {
+            for y in 0..r {
+                for z in 0..r {
+                    if !self.model.filled[x][y][z] {
+                        continue;
+                    }
+                    if self.pos_to_step[x][y][z] == !0 {
+                        eprintln!("Position {} {} {} not voided", x, y, z);
+                        f = true;
+                    }
+                }
+            }
+        }
+        if f {
+            panic!();
+        }
+    }
+
     pub fn compute_reachable_step(&self) -> V3<usize> {
         let r = self.model.r;
         let mut que = BinaryHeap::new();
@@ -68,6 +89,8 @@ impl Harmonizer {
         }
 
         while let Some((s, p)) = que.pop() {
+            // eprintln!("{:?} {:?}", s, p);
+
             if s < stp[p] {
                 continue;
             }
