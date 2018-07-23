@@ -132,21 +132,23 @@ fn main() {
             for ix in 1..rx {
                 for iz in 1..rz {
                     if small[ix][iz] {
-                        let bx2 = [bx[ix] as i32, bx[ix+1] as i32];
+                        let bx2 = [bx[ix] as i32, bx[ix+1] as i32 - 1];
                         // let by2 = [y_low, y_high];
-                        let bz2 = [bz[iz] as i32, bz[iz+1] as i32];
+                        let bz2 = [bz[iz] as i32, bz[iz+1] as i32 - 1];
                         let mut cmds = BTreeMap::new();
                         for a in 0..2 {
                             for b in 0..2 {
-                                let bid = bids_low[&(ix+a, iz+b)];
-                                let nd = P::new(bx2[a], 0, bz2[b]) - bot_xz[&(ix, iz)];
-                                let fd = P::new(bx2[1-a] - bx2[a], y_high - y_low, bz2[1-b] - bz2[b]);
-                                cmds.insert(bid, Command::GFill(nd, fd));
-
-                                let bid = bids_high[&(ix+a, iz+b)];
-                                let nd = P::new(bx2[a], 0, bz2[b]) - bot_xz[&(ix, iz)];
-                                let fd = P::new(bx2[1-a] - bx2[a], y_low - y_high, bz2[1-b] - bz2[b]);
-                                cmds.insert(bid, Command::GFill(nd, fd));
+                                let nd = P::new(bx2[a], 0, bz2[b]) - bot_xz[&(ix+a, iz+b)];
+                                {
+                                    let bid = bids_low[&(ix+a, iz+b)];
+                                    let fd = P::new(bx2[1-a] - bx2[a], y_high - y_low, bz2[1-b] - bz2[b]);
+                                    cmds.insert(bid, Command::GFill(nd, fd));
+                                }
+                                {
+                                    let bid = bids_high[&(ix+a, iz+b)];
+                                    let fd = P::new(bx2[1-a] - bx2[a], y_low - y_high, bz2[1-b] - bz2[b]);
+                                    cmds.insert(bid, Command::GFill(nd, fd));
+                                }
                             }
                         }
                         eprintln!("{:?}", cmds);
@@ -179,6 +181,15 @@ fn main() {
         let positions = positions.values().cloned().collect();
         let fusion_cmds = postproc::fusion_all(&mat![false; r; r; r], positions);
         eprintln!("{} {} {}", fission_cmds.len(), main_cmds.len(), fusion_cmds.len());
+        for c in fission_cmds {
+            println!("{}", c.to_string());
+        }
+        for c in main_cmds {
+            println!("{}", c.to_string());
+        }
+        for c in fusion_cmds {
+            println!("{}", c.to_string());
+        }
         return;
     }
 }
