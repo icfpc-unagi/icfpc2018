@@ -137,7 +137,6 @@ fn main() {
         let sorted_bids = sorted_bids;
 
         let mut main_cmds = Vec::new();
-        /*
         {
             let mut cmds = Vec::new();
             cmds.push(Command::Flip);
@@ -146,7 +145,6 @@ fn main() {
             }
             main_cmds.append(&mut cmds);
         }
-        */
         loop {
             for ix in 1..rx {
                 for iz in 1..rz {
@@ -191,7 +189,6 @@ fn main() {
                 y_down += dy;
             }
         }
-        /*
         {
             let mut cmds = Vec::new();
             cmds.push(Command::Flip);
@@ -200,7 +197,6 @@ fn main() {
             }
             main_cmds.append(&mut cmds);
         }
-        */
 
         let mut positions = BTreeMap::new();
         for ixz in bot_xz.keys() {
