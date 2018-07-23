@@ -20,4 +20,5 @@ test: ../bazel-bin/sim/sim
 	$< ./tests/tos50.nbt -t ../data/problemsL/LA050_tgt.mdl --logtostderr | grep energy:1340025018
 	$< ./tests/void.nbt -r 10
 	$< ./tests/gvoid.nbt -s ../data/problemsF/FD001_src.mdl --logtostderr | grep energy:9475625
+	$< ./tests/flip.nbt -s ../data/problemsF/FD181_src.mdl --logtostderr --stop_at=101 2>&1 | grep Ungrounded
 .PHONY: test
