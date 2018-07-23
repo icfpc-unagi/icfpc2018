@@ -24,6 +24,7 @@ fn main() {
             filled2_fix[x-1][z-1] = filled2[x][z]
         }
     }
+    let mut cands = Vec::new();
     for (bx_fix, bz_fix, small_fix) in xz::shrink(&filled2_fix, 31) {
         {
             let mut orz = false;
@@ -66,6 +67,13 @@ fn main() {
             eprintln!("");
         }
 
+        let mut penalty = 0;
+        for ix in 1..=rx {
+            for iz in 1..=rz {
+                penalty += 10000 * small[ix][iz] as i32;
+            }
+        }
+
         let mut bot_xz = BTreeMap::new();
         {
             let mut xz_tmp = BTreeMap::new();
@@ -82,6 +90,7 @@ fn main() {
                     }
                 }
             }
+
             let mut orz = false;
             for ix in 1..rx {
                 for iz in 1..rz {
@@ -95,10 +104,12 @@ fn main() {
                     if cnt == 4 {
                         orz = true;
                     } else if cnt > 0 {
+                        penalty += 1 * cnt;
                         bot_xz.insert((ix, iz), xz_tmp[&(ix, iz)]);
                     }
                 }
             }
+            penalty += 100 * bot_xz.len() as i32;
             if orz || bot_xz.len() > 20 {
                 continue;
             }
@@ -111,7 +122,13 @@ fn main() {
                 continue;
             }
         }
+        cands.push((penalty, bx, bz, small, rx, rz, bot_xz));
+    }
 
+    cands.sort();
+    for (_penalty, bx, bz, small, rx, rz, bot_xz) in cands.iter() {
+        let rx = *rx;
+        let rz = *rz;
         let mut y_high = 1.max(y_max as i32);
         let mut y_low = 0.max(y_high - 30 + 1);
         let mut bot_ps = Vec::new();
