@@ -8,18 +8,20 @@ use super::harmonizer::Harmonizer;
 use super::util;
 
 const MAX_N_BOTS: usize = 40;
+const DEFAULT_MAX_N_BOTS_X: i32 = 6;
+const DEFAULT_MAX_N_BOTS_Z: i32 = 6;
 
-struct App {
-    model: Model,
-    bots: Vec<Bot>,
-    fission_commands: Vec<Command>,
-    fusion_commands: Vec<Command>,
-    command_sets: Vec<CommandSet>,
-    harmonizer: Harmonizer,
+pub struct App {
+    pub model: Model,
+    pub bots: Vec<Bot>,
+    pub fission_commands: Vec<Command>,
+    pub fusion_commands: Vec<Command>,
+    pub command_sets: Vec<CommandSet>,
+    pub harmonizer: Harmonizer,
     // Hoge
-    bot_grid_relps: Vec<Vec<P>>,
-    bot_grid_bids: Vec<Vec<usize>>,
-    session_absps: Vec<P>,
+    pub bot_grid_relps: Vec<Vec<P>>,
+    pub bot_grid_bids: Vec<Vec<usize>>,
+    pub session_absps: Vec<P>,
 }
 
 const CELL_LENGTH: i32 = 30;
@@ -132,7 +134,7 @@ impl App {
     // Pre and post processing
     //
 
-    fn fusion(&mut self) {
+    pub fn fusion(&mut self) {
         let r = self.model.r;
         self.fusion_commands = postproc::fusion_all(
             &mat![false; r; r; r],
@@ -191,7 +193,7 @@ impl App {
     }
 
     fn harmonize_all(&mut self) {
-        // 常時harmonizeオン
+        // 常時harmonizeオン（デバッグ用）
         let n_bots = self.bots.len();
 
         // Turn on harmonics
@@ -207,7 +209,7 @@ impl App {
         self.command_sets.last_mut().unwrap().flip_by_somebody();
     }
 
-    fn harmonize(&mut self) {
+    pub fn harmonize(&mut self) {
         // 賢いやつ
         let n_bots = self.bots.len();
         let n_steps = self.command_sets.len();
@@ -258,7 +260,7 @@ impl App {
     // Utils
     //
 
-    fn get_trace(&self) -> Vec<Command> {
+    pub fn get_trace(&self) -> Vec<Command> {
         let mut all: Vec<Command> = vec![];
         for command in self.fission_commands.iter() {
             all.push(*command);
@@ -291,12 +293,13 @@ impl App {
     // Preparation
     //
 
-    pub fn prepare_bot_grid(&mut self) {
+    pub fn prepare_bot_grid(&mut self, n_bots_x: i32, n_bots_z: i32) {
         // bot grid = botの数と相対位置
+        eprintln!("Bounding box: {:?}", util::get_bounding_box(&self.model.filled));
         let (bb_length_x, bb_length_z) = self.get_bounding_box_lengths();
 
-        let n_bots_x = min(6, (bb_length_x - 2) / CELL_LENGTH + 2);
-        let n_bots_z = min(6, (bb_length_z - 2) / CELL_LENGTH + 2);
+        let n_bots_x = min(n_bots_x, (bb_length_x - 2) / CELL_LENGTH + 2);
+        let n_bots_z = min(n_bots_z, (bb_length_z - 2) / CELL_LENGTH + 2);
         let n_bots_x = max(n_bots_x, (MAX_N_BOTS as i32) / n_bots_z);
         let n_bots_z = max(n_bots_z, (MAX_N_BOTS as i32) / n_bots_x);
         let n_bots_x = min(n_bots_x, (bb_length_x - 2) / CELL_LENGTH + 2);
@@ -355,7 +358,7 @@ impl App {
         eprintln!();
     }
 
-    fn fission(&mut self) {
+    pub fn fission(&mut self) {
         let (n_bots_x, n_bots_z) = (self.bot_grid_relps.len(), self.bot_grid_relps[0].len());
         let n_bots = n_bots_x * n_bots_z;
 
@@ -399,12 +402,7 @@ impl App {
         self.bot_grid_bids = bot_grid_bids;
     }
 
-    pub fn main(&mut self) {
-        eprintln!("Bounding box: {:?}", util::get_bounding_box(&self.model.filled));
-        self.prepare_bot_grid();
-        self.prepare_session_schedule();
-        self.fission();
-
+    pub fn destroy_all(&mut self) {
         for i in 0..self.session_absps.len() {
             // Transition
             let nxt_p0 = self.session_absps[i];
@@ -421,11 +419,15 @@ impl App {
 
             self.destroy_session();
         }
-
         self.harmonizer.check_complete();
+    }
 
+    pub fn main(&mut self) {
+        self.prepare_bot_grid(DEFAULT_MAX_N_BOTS_X, DEFAULT_MAX_N_BOTS_Z);
+        self.prepare_session_schedule();
+        self.fission();
+        self.destroy_all();
         self.harmonize();
-        eprintln!("Fusion");
         self.fusion();
     }
 }
