@@ -233,6 +233,6 @@ fn main() {
         }
         return;
     }
-    eprintln!("damepo");
+    panic!("damepo");
 }
 
