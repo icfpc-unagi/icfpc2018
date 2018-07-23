@@ -5,6 +5,7 @@ pub mod strategy_large;
 
 mod structs;
 mod harmonizer;
+mod util;
 
 use super::{Model, Command};
 

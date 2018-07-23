@@ -26,8 +26,8 @@ pub fn shrink(orig: &V2<bool>, grid_size: usize) -> Vec<(Vec<usize>, Vec<usize>,
         }
     }
     let mut ret = Vec::new();
-    for bx in 1..=grid_size {
-        for bz in 1..=grid_size {
+    for bx in (1..=grid_size).rev() {
+        for bz in (1..=grid_size).rev() {
             let rx_small = (rx + grid_size - bx + grid_size - 1) / grid_size;
             let rz_small = (rz + grid_size - bz + grid_size - 1) / grid_size;
             let mut small = mat![false; rx_small; rz_small];

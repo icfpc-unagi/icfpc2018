@@ -2,7 +2,25 @@
 // extern crate wata;
 
 /*
-完了:
+【解決すべき課題】
+- FD181でungrounded → するめん待ち
+-
+
+【トップとの差】
+- 2: 124（剣）、127（車）、179（卵肉抜き）、181（Γ）
+- 5: 168（大砲）
+
+→ 181以外はx,zのBBで良くなる予定
+→ 181はさいあくちょくだいさんのやつを逆再生する
+
+
+【デフォルト比（R＞30）】
+- ≦500: FD047（＋、ぺらい）、054（剣、ぺらい）、FD087（かなりぺらい）、FD088(かなりぺらい）、FD114（かなりぺらい）、FD142（かなりぺらい）、FD166（かなりぺらい）
+- ≦1000, FD048（ぺらい）、FD051（大根の頭、ぺらくない）、FD055（まあまあぺらい）、FD062（まあまあぺらい）、FD080（まあまあぺらい）、FD086（まあまあぺらい）
+
+
+
+【完了】
 - まずはなんでも良いから全部破壊する (R ≦ 150)
     - 方向固定: 上から
     - Harmonics: とりあえず常時on
@@ -10,16 +28,19 @@
     - session: 1発
 - まずは何でも良いから全部破壊する（全R）
     - マルチセッション
-
-Backlog:
 - Harmonicsを必要なときだけにする
-- bounding boxを真面目にやる
+- Harmonicsのオンオフを、余りbotが居ればそいつがやるようにする
+- まずはy座標だけ真面目にmax計算する
+
+【Backlog】
+- bounding boxをx, zも真面目にやる
+- 縦横で30未満の辺があり、横がほげ以下だったら、smallに行く
+
 - 方向: 全通り試す
 - bot: 5 * 8 とか色々試すようにする
 - 1回の面の消しをどういう順番でやるか全部試す
-- Harmonicsのオンオフを、余りbotが居ればそいつがやるようにする
 
-そのうち
+【そのうち】
 - 余るような小さいやつだったら1箇所にbotを2つおく
 - flip
 */
@@ -31,38 +52,9 @@ use super::super::*;
 
 use super::structs::{Bot, CommandSet};
 use super::harmonizer::Harmonizer;
+use super::util;
 
-fn get_filled_positions(filled: &V3<bool>) -> Vec<P> {
-    let r = filled.len();
-    let mut ps = vec![];
-    for x in 0..r {
-        for y in 0..r {
-            for z in 0..r {
-                let p = P::new(x as i32, y as i32, z as i32);
-                if filled[p] {
-                    ps.push(p);
-                }
-            }
-        }
-    }
-    return ps;
-}
-
-fn get_bounding_box(filled: &V3<bool>) -> (P, P) {
-    let ps = get_filled_positions(filled);
-    return (
-        P::new(
-            ps.iter().map(|p| p.x).min().unwrap(),
-            ps.iter().map(|p| p.y).min().unwrap(),
-            ps.iter().map(|p| p.z).min().unwrap(),
-        ),
-        P::new(
-            ps.iter().map(|p| p.x).max().unwrap(),
-            ps.iter().map(|p| p.y).max().unwrap(),
-            ps.iter().map(|p| p.z).max().unwrap(),
-        )
-    );
-}
+const MAX_N_BOTS: usize = 40;
 
 struct App {
     model: Model,
@@ -71,6 +63,10 @@ struct App {
     fusion_commands: Vec<Command>,
     command_sets: Vec<CommandSet>,
     harmonizer: Harmonizer,
+    // Hoge
+    bot_grid_relps: Vec<Vec<P>>,
+    bot_grid_bids: Vec<Vec<usize>>,
+    session_absps: Vec<P>,
 }
 
 const CELL_LENGTH: i32 = 30;
@@ -90,6 +86,9 @@ impl App {
             fusion_commands: vec![],
             command_sets: vec![],
             harmonizer: Harmonizer::new(model),
+            bot_grid_relps: vec![vec![]],
+            bot_grid_bids: vec![vec![]],
+            session_absps: vec![],
         }
     }
 
@@ -97,7 +96,8 @@ impl App {
     // Session (= x and z coordinates are fixed, destroy along y axis)
     //
 
-    fn destroy_layer(&mut self, bot_grid: &Vec<Vec<usize>>) {
+    fn destroy_layer(&mut self) {
+        let bot_grid = &self.bot_grid_bids;
         let (n_bots_x, n_bots_z) = (bot_grid.len(), bot_grid[0].len());
 
         for parity_x in 0..2 {
@@ -116,6 +116,8 @@ impl App {
                             &self.bots[bot_grid[ix + 1][iz + 0]],
                             &self.bots[bot_grid[ix + 1][iz + 1]],
                         ];
+                        // eprintln!("DESTROY: {:?} {:?}", bot4[0].p, bot4[3].p);
+
                         cs.gvoid_below_layer(&bot4);
                         self.harmonizer.gvoid_below_layer(&bot4, current_step);
                         iz += 2;
@@ -143,33 +145,28 @@ impl App {
         }
     }
 
-    fn destroy_session(&mut self, bot_grid: &Vec<Vec<usize>>) {
-        let n_bots_x = bot_grid.len();
-        let n_bots_z = bot_grid[0].len();
+    fn destroy_session(&mut self) {
+        let (n_bots_x, n_bots_z) = (self.bot_grid_relps.len(), self.bot_grid_relps[0].len());
 
-        let p0 = self.bots[bot_grid[0][0]].p;
+        // Confirm the bot formation
+        let p0 = self.bots[self.bot_grid_bids[0][0]].p;
         for ix in 0..n_bots_x {
             for iz in 0..n_bots_z {
-                let p = &self.bots[bot_grid[ix][iz]].p;
+                let p = self.bots[self.bot_grid_bids[ix][iz]].p;
                 assert_eq!(p.y, p0.y);
-                assert_eq!(
-                    p.x,
-                    min(p0.x + (ix as i32) * CELL_LENGTH, (self.model.r - 1) as i32)
-                );
-                assert_eq!(
-                    p.z,
-                    min(p0.z + (iz as i32) * CELL_LENGTH, (self.model.r - 1) as i32)
-                );
+                assert_eq!(p, p0 + self.bot_grid_relps[ix][iz]);
             }
         }
 
+        // Just go down
         loop {
-            let p = self.bots[bot_grid[0][0]].p;
+            let p = self.bots[self.bot_grid_bids[0][0]].p;
+            // eprintln!("{:?}", p);
             if p.y == 0 {
                 break;
             }
 
-            self.destroy_layer(bot_grid);
+            self.destroy_layer();
 
             if p.y == 1 {
                 break;
@@ -181,54 +178,6 @@ impl App {
     //
     // Pre and post processing
     //
-
-    fn fission(&mut self, n_bots_x: usize, n_bots_z: usize) -> Vec<Vec<usize>> {
-        let r = self.model.r as i32;
-        let n_bots = n_bots_x * n_bots_z;
-        let max_filled_y = get_bounding_box(&self.model.filled).1.y;
-
-        // Positions
-        let p0 = P::new(0, max_filled_y + 1, 0); // TODO: better starting point
-        let ps: Vec<P> = (0..n_bots)
-            .map(|i| {
-                let ix = (i / n_bots_z) as i32;
-                let iz = (i % n_bots_z) as i32;
-                p0 + P::new(
-                    min(CELL_LENGTH * ix, r - 1),
-                    0,
-                    min(CELL_LENGTH * iz, r - 1),
-                )
-            })
-            .collect();
-
-        let (ord, cmds) = fission_to(&self.model.filled, &ps);
-        self.fission_commands = cmds;
-        // let ord: Vec<usize> = (1..(n_bots + 1)).collect();
-        eprintln!("{:?}", ord);
-
-        self.bots = (0..n_bots)
-            .map(|bid| {
-                Bot {
-                    bid,
-                    p: P::new(-1, -1, -1), // Dummy
-                }
-            })
-            .collect();
-        for (&i, &p) in ord.iter().zip(ps.iter()) {
-            self.bots[i - 1].p = p; // ord is 1-indexed
-        }
-
-        let bot_grid = (0..n_bots_x)
-            .map(|ix| {
-                (0..n_bots_z)
-                    .map(|iz| {
-                        ord[ix * n_bots_z + iz] - 1 // ord is 1-indexed
-                    })
-                    .collect()
-            })
-            .collect();
-        return bot_grid;
-    }
 
     fn fusion(&mut self) {
         let r = self.model.r;
@@ -329,8 +278,14 @@ impl App {
 
                 // Need flip!
                 if self.command_sets[index].is_all_busy() {
-                    self.command_sets.insert(index, CommandSet::new(n_bots));
-                    self.command_sets[index].flip_by_somebody();
+                    let insert_index;
+                    if nxt_harmony == true {
+                        insert_index = index;
+                    } else {
+                        insert_index = index + 1;
+                    }
+                    self.command_sets.insert(insert_index, CommandSet::new(n_bots));
+                    self.command_sets[insert_index].flip_by_somebody();
                     index += 1;
                 } else {
                     self.command_sets[index].flip_by_somebody();
@@ -347,7 +302,7 @@ impl App {
     }
 
     //
-    // Main
+    // Utils
     //
 
     fn get_trace(&self) -> Vec<Command> {
@@ -366,17 +321,171 @@ impl App {
         return all;
     }
 
+    pub fn get_bounding_box_lengths(&self) -> (i32, i32) {
+        let bb = util::get_bounding_box(&self.model.filled);
+        let bb_length_x = (bb.1.x - bb.0.x) + 1;
+        let bb_length_z = (bb.1.z - bb.0.z) + 1;
+        return (bb_length_x, bb_length_z);
+    }
+
+    pub fn get_bot_grid_total_lengths(&self) -> (i32, i32) {
+        let bg = &self.bot_grid_relps;
+        let p = bg[bg.len() - 1][bg[0].len() - 1];
+        return (p.x + 1, p.z + 1); // NOTE: be careful about this +1 --- bots are not there!
+    }
+
+    //
+    // Preparation
+    //
+
+    pub fn prepare_bot_grid(&mut self) {
+        // bot grid = botの数と相対位置
+        let (bb_length_x, bb_length_z) = self.get_bounding_box_lengths();
+
+        let n_bots_x = min(6, (bb_length_x - 2) / CELL_LENGTH + 2);
+        let n_bots_z = min(6, (bb_length_z - 2) / CELL_LENGTH + 2);
+        let n_bots_x = max(n_bots_x, (MAX_N_BOTS as i32) / n_bots_z);
+        let n_bots_z = max(n_bots_z, (MAX_N_BOTS as i32) / n_bots_x);
+        let n_bots_x = min(n_bots_x, (bb_length_x - 2) / CELL_LENGTH + 2);
+        let n_bots_z = min(n_bots_z, (bb_length_z - 2) / CELL_LENGTH + 2);
+
+        let bot_grid_relps: Vec<Vec<P>> = (0..n_bots_x).map(|ix| {
+            (0..n_bots_z).map(|iz| {
+                P::new(
+                    min(bb_length_x - 1, ix * CELL_LENGTH),
+                    0,
+                    min(bb_length_z - 1, iz * CELL_LENGTH))
+            }).collect()
+        }).collect();
+
+        self.bot_grid_relps = bot_grid_relps;
+
+        eprintln!("Bot grid: {} X {} (actual size: {:?})", self.bot_grid_relps.len(), self.bot_grid_relps[0].len(), self.get_bot_grid_total_lengths());
+        eprintln!("({:?})", self.bot_grid_relps);
+        eprintln!();
+    }
+
+    pub fn prepare_session_schedule(&mut self) {
+        // TODO: y should be determined for every session
+        let bb = util::get_bounding_box(&self.model.filled);
+        let max_filled_y = bb.1.y;
+
+        let (bb_length_x, bb_length_z) = self.get_bounding_box_lengths();
+        let (bg_length_x, bg_length_z) = self.get_bot_grid_total_lengths();
+        eprintln!("{} {}", bb_length_x, bg_length_x);
+
+        let n_sessions_x = (bb_length_x + bg_length_x - 1) / bg_length_x;
+        let n_sessions_z = (bb_length_z + bg_length_z - 1) / bg_length_z;
+
+        let mut session_absps = vec![];
+        for ix in 0..n_sessions_x {
+            for k in 0..n_sessions_z {
+                let iz;
+                if ix % 2 == 0 {
+                    iz = k;
+                } else {
+                    iz = n_sessions_z - k - 1;
+                }
+
+                session_absps.push(
+                    P::new(
+                        bb.0.x +min(ix * bg_length_x, bb_length_x - bg_length_x),
+                        max_filled_y + 1,
+                        bb.0.z +min(iz * bg_length_z, bb_length_z - bg_length_z)))
+            }
+        }
+
+        self.session_absps = session_absps;
+
+        eprintln!("Sessions: x={}, z={} -> {}", n_sessions_x, n_sessions_z, self.session_absps.len());
+        eprintln!("({:?})", self.session_absps);
+        eprintln!();
+    }
+
+    fn fission(&mut self) {
+        let (n_bots_x, n_bots_z) = (self.bot_grid_relps.len(), self.bot_grid_relps[0].len());
+        let n_bots = n_bots_x * n_bots_z;
+
+        // Positions
+        let ps: Vec<P> = (0..n_bots)
+            .map(|i| {
+                let ix = i / n_bots_z;
+                let iz = i % n_bots_z;
+                self.session_absps[0] + self.bot_grid_relps[ix][iz]
+            }).collect();
+
+        let (ord, cmds) = fission_to(&self.model.filled, &ps);
+        self.fission_commands = cmds;
+        // let ord: Vec<usize> = (1..(n_bots + 1)).collect();s
+        eprintln!("Ordering from fission: {:?}", ord);
+
+        self.bots = (0..n_bots)
+            .map(|bid| {
+                Bot {
+                    bid,
+                    p: P::new(-1, -1, -1), // Dummy
+                }
+            })
+            .collect();
+        for (&i, &p) in ord.iter().zip(ps.iter()) {
+            self.bots[i - 1].p = p; // ord is 1-indexed
+        }
+
+        let bot_grid_bids = (0..n_bots_x)
+            .map(|ix| {
+                (0..n_bots_z)
+                    .map(|iz| {
+                        ord[ix * n_bots_z + iz] - 1 // ord is 1-indexed
+                    })
+                    .collect()
+            })
+            .collect();
+
+        eprintln!("Bot grid BIDs: {:?}", bot_grid_bids);
+
+        self.bot_grid_bids = bot_grid_bids;
+    }
+
     pub fn main(&mut self) {
+        eprintln!("Bounding box: {:?}", util::get_bounding_box(&self.model.filled));
+        self.prepare_bot_grid();
+        self.prepare_session_schedule();
+        self.fission();
+
+        for i in 0..self.session_absps.len() {
+            // Transition
+            let nxt_p0 = self.session_absps[i];
+            let crr_p0 = self.bots[self.bot_grid_bids[0][0]].p;
+
+            eprintln!("Session: {:?}", nxt_p0);
+
+            if i == 0 {
+                assert_eq!(crr_p0, nxt_p0);
+            } else {
+                eprintln!("Session transition: {:?} -> {:?}", crr_p0, nxt_p0);
+                self.move_to_next_session(nxt_p0 - crr_p0);
+            }
+
+            self.destroy_session();
+        }
+
+        self.harmonizer.check_complete();
+
+        eprintln!("Harmonize");
+        self.harmonize();  // TODO: awpeofijawpoeifjpoaiwejfpoiawejfpoawejfpoajewpfipjawoejfpoawejfpoaiewjfpoiawjepfoijepofjawoeif
+        eprintln!("Fusion");
+        self.fusion();
+
+        /*
         // TODO: use a bounding box
         let r = self.model.r as i32;
-        let max_filled_y = get_bounding_box(&self.model.filled).1.y;
+        let max_filled_y = util::get_bounding_box(&self.model.filled).1.y;
         eprintln!("Max filled y: {}", max_filled_y);
 
         // TODO: hoge
         let n_bots_x = min(6, ((r as usize) - 1) / (CELL_LENGTH as usize) + 2);
         let n_bots_z = n_bots_x;
         let n_bots = n_bots_x * n_bots_z;
-        let bot_grid = self.fission(n_bots_x, n_bots_z);
         eprintln!(
             "R: {}, Bot grid: {} X {} ({:?})",
             r, n_bots_x, n_bots_z, bot_grid
@@ -417,13 +526,8 @@ impl App {
         }
 
         self.harmonize();
-
-        for (i, command_set) in self.command_sets.iter().enumerate() {
-            // println!("[ STEP {} ]", i);
-            // command_set.emit();
-        }
-
         self.fusion();
+        */
     }
 }
 
