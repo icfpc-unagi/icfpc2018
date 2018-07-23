@@ -47,7 +47,8 @@ Database::Command("
     CREATE TEMPORARY TABLE standing AS
     SELECT
         run_id, $program_id_field, problem_id,
-        run_score, best_run_score, default_run_score,
+        run_score, official_score, official_score_queue,
+        best_run_score, default_run_score,
         (CASE WHEN best_run_score = default_run_score THEN
             FLOOR(LOG2(problem_resolution)) * 1000
         ELSE
@@ -66,7 +67,7 @@ Database::Command("
          FROM runs NATURAL JOIN problems
          GROUP BY problem_id) AS best_run_scores
             NATURAL LEFT JOIN
-        problems
+        problems NATURAL LEFT JOIN official_scores
     WHERE run_score IS NOT NULL $where
     ORDER BY problem_id, run_score ASC");
 
@@ -487,7 +488,18 @@ foreach ($problems as $problem) {
         if ($program['program_id'] >= 5000) {
             echo "<a href=\"/run.php?run_id={$program['run_id']}\">";
         }
-        echo "{$program['run_score']}";
+        if (preg_match('%^\d+$%', $program['run_score'])) {
+            if (!is_null($program['official_score_queue'])) {
+                $official = '⏳';
+            } else if (is_null($program['official_score'])) {
+                $official = '';
+            } else if ($program['run_score']== $program['official_score']) {
+                $official = '✅';
+            } else {
+                $official = '💣';
+            }
+        }
+        echo "$official{$program['run_score']}";
         if ($program['program_id'] >= 5000) {
             echo "</a>";
         }
