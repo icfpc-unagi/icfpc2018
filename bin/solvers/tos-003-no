@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -e -u
+
+exec "${BASH_SOURCE}.$(uname)" "$@"
