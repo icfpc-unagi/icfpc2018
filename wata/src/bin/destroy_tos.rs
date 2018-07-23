@@ -25,6 +25,26 @@ fn main() {
         }
     }
     for (bx_fix, bz_fix, small_fix) in xz::shrink(&filled2_fix, 30) {
+        {
+            let mut orz = false;
+
+            for (b0, b1) in bx_fix.iter().zip(bx_fix[1..].iter()) {
+                orz |= b1 - b0 <= 1;
+            }
+            for (b0, b1) in bz_fix.iter().zip(bz_fix[1..].iter()) {
+                orz |= b1 - b0 <= 1;
+            }
+            /*
+            if bx[ix+1] - bx[ix] <= 1 || bz[iz+1] - bz[iz] <= 1 {
+                eprintln!("orz {} {}", bx[ix+1] - bx[ix], bz[iz+1] - bz[iz]);
+                eprintln!("{:?} {}", bx, ix);
+                orz = true;
+            }
+            */
+            if orz {
+                continue;
+            }
+        }
         /*
         eprintln!("({}, {})", bx, bz);
         for line in small.iter() {
@@ -63,28 +83,41 @@ fn main() {
         }
 
         let mut bot_xz = BTreeMap::new();
-        let mut orz = false;
-        for ix in 1..rx {
-            for iz in 1..rz {
-                let mut cnt = 0;
-                for a in 0..2 {
-                    for b in 0..2 {
-                        let t = small[ix-a][iz-b];
-                        cnt += t as i32;
-                        if t {
-                            bot_xz.insert(
-                                (ix, iz),
-                                P::new((bx[ix]-a) as i32, 0, (bz[iz]-b) as i32));
+        {
+            let mut xz_tmp = BTreeMap::new();
+            for ix in 1..rx {
+                for iz in 1..rz {
+                    for a in 0..2 {
+                        for b in 0..2 {
+                            if !small[ix-a][iz-b] {
+                                xz_tmp.insert(
+                                    (ix, iz),
+                                    P::new((bx[ix]-a) as i32, 0, (bz[iz]-b) as i32));
+                            }
                         }
                     }
                 }
-                if cnt == 4 {
-                    orz = true;
+            }
+            let mut orz = false;
+            for ix in 1..rx {
+                for iz in 1..rz {
+                    let mut cnt = 0;
+                    for a in 0..2 {
+                        for b in 0..2 {
+                            let t = small[ix-a][iz-b];
+                            cnt += t as i32;
+                        }
+                    }
+                    if cnt == 4 {
+                        orz = true;
+                    } else if cnt > 0 {
+                        bot_xz.insert((ix, iz), xz_tmp[&(ix, iz)]);
+                    }
                 }
             }
-        }
-        if orz || bot_xz.len() > 20 {
-            continue;
+            if orz || bot_xz.len() > 20 {
+                continue;
+            }
         }
         eprintln!("ok {:?}", bot_xz);
 
@@ -142,12 +175,12 @@ fn main() {
                                 {
                                     let bid = bids_low[&(ix+a, iz+b)];
                                     let fd = P::new(bx2[1-a] - bx2[a], y_high - y_low, bz2[1-b] - bz2[b]);
-                                    cmds.insert(bid, Command::GFill(nd, fd));
+                                    cmds.insert(bid, Command::GVoid(nd, fd));
                                 }
                                 {
                                     let bid = bids_high[&(ix+a, iz+b)];
                                     let fd = P::new(bx2[1-a] - bx2[a], y_low - y_high, bz2[1-b] - bz2[b]);
-                                    cmds.insert(bid, Command::GFill(nd, fd));
+                                    cmds.insert(bid, Command::GVoid(nd, fd));
                                 }
                             }
                         }
@@ -171,6 +204,14 @@ fn main() {
                 main_cmds.append(&mut cmds);
                 y_down += dy;
             }
+        }
+        {
+            let mut cmds = Vec::new();
+            cmds.push(Command::Flip);
+            for _ in 1..bids.len() {
+                cmds.push(Command::Wait);
+            }
+            main_cmds.append(&mut cmds);
         }
 
         let mut positions = BTreeMap::new();
