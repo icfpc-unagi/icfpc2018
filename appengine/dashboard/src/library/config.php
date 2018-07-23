@@ -1,5 +1,7 @@
 <?php
 
+error_reporting(E_ERROR | E_WARNING | E_PARSE);
+
 date_default_timezone_set('Asia/Tokyo');
 
 require_once(dirname(__FILE__) . '/database.php');

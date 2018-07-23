@@ -17,7 +17,7 @@ function register_program() {
 	if (!$_POST['program_command']) {
 		return 'Command is missing.';
 	}
-	if (strpos($_POST['program_command'], '${problem_name}')) {
+	if (strpos($_POST['program_command'], '${problem_name}') === FALSE) {
 		return 'Command does not contain ${problem_name}.';
 	}
 	Database::Command('INSERT IGNORE INTO programs {values}',

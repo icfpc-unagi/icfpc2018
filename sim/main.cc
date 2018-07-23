@@ -603,7 +603,7 @@ int main(int argc, char** argv) {
   State s(*source);
   bool success = s.execute(fa);
   LOG_IF(INFO, FLAGS_stop_at != 0) << "Stopped";
-  LOG_IF(INFO, FLAGS_stop_at == 0 && success) << "Halted successfully";
+  LOG_IF(INFO, FLAGS_stop_at == 0 && success) << "Halted \x1b[32mSUCCESSFULLY\x1b[0m";
   LOG(INFO) << "Result:"
             << "\n           time : " << s.steps
             << "\n       commands : " << s.commands
