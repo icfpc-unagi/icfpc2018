@@ -254,6 +254,51 @@ fn destruct_support(target: &V3<bool>, filled: &mut V3<bool>, bots: &mut Vec<Bot
 	energy
 }
 
+struct RegionIter {
+	min_x: i32,
+	max_x: i32,
+	min_y: i32,
+	max_y: i32,
+	min_z: i32,
+	max_z: i32,
+	x: i32,
+	y: i32,
+	z: i32,
+}
+
+impl Iterator for RegionIter {
+	type Item = P;
+	fn next(&mut self) -> Option<P> {
+		self.z += 1;
+		if self.z > self.max_z {
+			self.z = self.min_z;
+			self.y += 1;
+			if self.y > self.max_y {
+				self.y = self.min_y;
+				self.x += 1;
+				if self.x > self.max_x {
+					return None;
+				}
+			}
+		}
+		Some(P::new(self.x, self.y, self.z))
+	}
+}
+
+fn region(p: P, q: P) -> RegionIter {
+	RegionIter {
+		min_x: p.x.min(q.x),
+		max_x: p.x.max(q.x),
+		min_y: p.y.min(q.y),
+		max_y: p.y.max(q.y),
+		min_z: p.z.min(q.z),
+		max_z: p.z.max(q.z),
+		x: p.x.min(q.x),
+		y: p.y.min(q.y),
+		z: p.z.min(q.z) - 1,
+	}
+}
+
 fn fill_layer<I: Fn(i32, i32) -> P, X: Fn(P) -> usize, Y: Fn(P) -> usize, Z: Fn(P) -> usize, G: Fn(usize, usize) -> bool>
 			(target: &V3<bool>, filled: &mut V3<bool>, occupied: &mut InitV3<bool>, bots: &mut Vec<Bot>, dir: P,
 				pos: I, get_x: X, get_y: Y, get_z: Z, is_grounded: G, y0: usize) -> i64 {
@@ -290,18 +335,87 @@ fn fill_layer<I: Fn(i32, i32) -> P, X: Fn(P) -> usize, Y: Fn(P) -> usize, Z: Fn(
 		eprintln!("y = {}, rem = {}", y0, rem);
 		// output_layer(target, filled, &ground, &bots, y0);
 		occupied.init();
-		let mut near_bv = vec![vec![]; nbots];
 		for b in bots.iter() {
 			occupied[b.p] = true;
+		}
+		// gfill
+		loop {
+			let mut max_size = 2;
+			let mut gfill = ((!0, Command::Wait), (!0, Command::Wait));
+			for i in 0..nbots {
+				if bots[i].commands.len() > t {
+					continue;
+				}
+				for j in 0..i {
+					if bots[j].commands.len() > t {
+						continue;
+					}
+					for p in bots[i].p.near(r) {
+						if get_y(p) != y0 {
+							continue;
+						}
+						for q in bots[j].p.near(r) {
+							if get_y(q) != y0 {
+								continue;
+							}
+							if p == q {
+								continue;
+							}
+							if (get_x(p) == get_x(q) || get_z(p) == get_z(q)) && (p - q).mlen() > max_size {
+								let mut count = 0;
+								let mut ok = false;
+								let mut ng = false;
+								for a in region(p, q) {
+									if occupied[a] || !target[a] {
+										ng = true;
+										break;
+									}
+									if ground[get_x(a)][get_z(a)] {
+										ok = true;
+									}
+									if !filled[a] {
+										count += 1;
+									}
+								}
+								if ok && !ng && max_size.setmax(count) {
+									gfill = ((i, Command::GFill(p - bots[i].p, q - p)), (j, Command::GFill(q - bots[j].p, p - q)));
+								}
+							}
+						}
+					}
+				}
+			}
+			if max_size <= 2 {
+				break;
+			}
+			eprintln!("GFill: {}", max_size);
+			let ((i, ci), (j, cj)) = gfill;
+			bots[i].commands.push(ci);
+			bots[j].commands.push(cj);
+			if let Command::GFill(di, dj) = ci {
+				for a in region(bots[i].p + di, bots[i].p + di + dj) {
+					occupied[a] = true;
+				}
+			} else {
+				assert!(false);
+			}
+		}
+		
+		let mut near_bv = vec![vec![]; nbots];
+		for b in bots.iter() {
 			for p in b.p.near(r) {
-				if get_y(p) == y0 && target[p] && !filled[p] {
+				if get_y(p) == y0 && target[p] && !filled[p] && !occupied[p] {
 					near_bv[b.bid].push(p);
 					near_vb[get_x(p)][get_z(p)].push(b.bid);
 				}
 			}
 		}
+		
 		// fill
 		for b in bots.iter_mut() {
+			if b.commands.len() > t {
+				continue;
+			}
 			let mut min_size = 100;
 			let mut q = P::new(0, 0, 0);
 			for p in b.p.near(r) {
@@ -491,6 +605,21 @@ fn fill_layer<I: Fn(i32, i32) -> P, X: Fn(P) -> usize, Y: Fn(P) -> usize, Z: Fn(
 					for q in p.adj(r) {
 						if get_y(q) == y0 && target[q] && !ground[get_x(q)][get_z(q)] {
 							ground[get_x(q)][get_z(q)] = true;
+						}
+					}
+				},
+				Command::GFill(d1, d2) => {
+					for p in region(b.p + d1, b.p + d1 + d2) {
+						assert!(target[p]);
+						if !filled[p] {
+							filled[p] = true;
+							ground[get_x(p)][get_z(p)] = true;
+							rem -= 1;
+							for q in p.adj(r) {
+								if get_y(q) == y0 && target[q] && !ground[get_x(q)][get_z(q)] {
+									ground[get_x(q)][get_z(q)] = true;
+								}
+							}
 						}
 					}
 				}
@@ -948,7 +1077,7 @@ fn solve_bottom_up(target: &V3<bool>, nbots: usize) -> (i64, Vec<Command>) {
 	(energy, commands)
 }
 
-fn choose_z0(target: &V3<bool>) -> usize {
+fn choose_z0(target: &V3<bool>, nbots: usize) -> (usize, usize) {
 	let r = target.len();
 	let mut total = 0;
 	for x in 0..r {
@@ -962,6 +1091,7 @@ fn choose_z0(target: &V3<bool>) -> usize {
 	}
 	let mut sub = 0;
 	for z in 0..r {
+		let tmp = sub;
 		for x in 0..r {
 			for y in 0..r {
 				if target[x][y][z] {
@@ -970,25 +1100,26 @@ fn choose_z0(target: &V3<bool>) -> usize {
 			}
 		}
 		if sub * 2 > total {
-			return z;
+			return (z, nbots - nbots * tmp / total);
+			// return (z, nbots / 2);
 		}
 	}
-	return r - 1;
+	return (r - 1, 0);
 }
 
 fn solve_z(target: &V3<bool>, nbots: usize) -> (i64, Vec<Command>) {
 	let r = target.len();
-	let z0 = choose_z0(target);
-	eprintln!("z0: {} / {}", z0, r);
+	let (z0, nbots1) = choose_z0(target, nbots);
+	eprintln!("z0: {} / {}, {} : {}", z0, r, nbots1, nbots - nbots1);
 	let target2 = target_z(target, z0);
 	let mut init_all = vec![];
 	let mut energy = 0;
 	for &dir in &[-1, 1] {
 		let mut init = vec![];
 		let nbots = if dir < 0 {
-			nbots / 2
+			nbots1
 		} else {
-			nbots - nbots / 2
+			nbots - nbots1
 		};
 		let z = if dir < 0 { z0 } else { z0 - 1 };
 		for x in 0..r {
@@ -1025,11 +1156,11 @@ fn solve_z(target: &V3<bool>, nbots: usize) -> (i64, Vec<Command>) {
 	for &dir in &[-1, 1] {
 		let mut bots = vec![];
 		if dir < 0 {
-			for i in 0..nbots / 2 {
+			for i in 0..nbots1 {
 				bots.push(Bot { bid: bids[i], p: init_all[i], commands: vec![] });
 			}
 		} else {
-			for i in nbots / 2 .. nbots {
+			for i in nbots1 .. nbots {
 				bots.push(Bot { bid: bids[i], p: init_all[i], commands: vec![] });
 			}
 		}
