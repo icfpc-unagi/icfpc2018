@@ -1,50 +1,3 @@
-
-// extern crate wata;
-
-/*
-【解決すべき課題】
-- FD181でungrounded → するめん待ち
--
-
-【トップとの差】
-- 2: 124（剣）、127（車）、179（卵肉抜き）、181（Γ）
-- 5: 168（大砲）
-
-→ 181以外はx,zのBBで良くなる予定
-→ 181はさいあくちょくだいさんのやつを逆再生する
-
-
-【デフォルト比（R＞30）】
-- ≦500: FD047（＋、ぺらい）、054（剣、ぺらい）、FD087（かなりぺらい）、FD088(かなりぺらい）、FD114（かなりぺらい）、FD142（かなりぺらい）、FD166（かなりぺらい）
-- ≦1000, FD048（ぺらい）、FD051（大根の頭、ぺらくない）、FD055（まあまあぺらい）、FD062（まあまあぺらい）、FD080（まあまあぺらい）、FD086（まあまあぺらい）
-
-
-
-【完了】
-- まずはなんでも良いから全部破壊する (R ≦ 150)
-    - 方向固定: 上から
-    - Harmonics: とりあえず常時on
-    - bot: 6 * 6 固定
-    - session: 1発
-- まずは何でも良いから全部破壊する（全R）
-    - マルチセッション
-- Harmonicsを必要なときだけにする
-- Harmonicsのオンオフを、余りbotが居ればそいつがやるようにする
-- まずはy座標だけ真面目にmax計算する
-
-【Backlog】
-- bounding boxをx, zも真面目にやる
-- 縦横で30未満の辺があり、横がほげ以下だったら、smallに行く
-
-- 方向: 全通り試す
-- bot: 5 * 8 とか色々試すようにする
-- 1回の面の消しをどういう順番でやるか全部試す
-
-【そのうち】
-- 余るような小さいやつだったら1箇所にbotを2つおく
-- flip
-*/
-
 use std::cmp::{max, min};
 use std::collections::*;
 use super::super::bfs::*;
@@ -471,63 +424,9 @@ impl App {
 
         self.harmonizer.check_complete();
 
-        eprintln!("Harmonize");
-        self.harmonize();  // TODO: awpeofijawpoeifjpoaiwejfpoiawejfpoawejfpoajewpfipjawoejfpoawejfpoaiewjfpoiawjepfoijepofjawoeif
+        self.harmonize();
         eprintln!("Fusion");
         self.fusion();
-
-        /*
-        // TODO: use a bounding box
-        let r = self.model.r as i32;
-        let max_filled_y = util::get_bounding_box(&self.model.filled).1.y;
-        eprintln!("Max filled y: {}", max_filled_y);
-
-        // TODO: hoge
-        let n_bots_x = min(6, ((r as usize) - 1) / (CELL_LENGTH as usize) + 2);
-        let n_bots_z = n_bots_x;
-        let n_bots = n_bots_x * n_bots_z;
-        eprintln!(
-            "R: {}, Bot grid: {} X {} ({:?})",
-            r, n_bots_x, n_bots_z, bot_grid
-        );
-
-        let session_x_size = min(r as i32, ((n_bots_x - 1) as i32) * CELL_LENGTH + 1);
-        let session_z_size = min(r as i32, ((n_bots_z - 1) as i32) * CELL_LENGTH + 1);
-
-        // TODO: more efficient way to schedule the order of sessions
-        // TODO: don't use the same size for two sessions?
-        let mut ix = 0;
-        while ix * session_x_size < r {
-            let session_x_offset = min(ix * session_x_size, r - session_x_size);
-
-            let mut iz = 0;
-            while iz * session_z_size < r {
-                let session_z_offset = min(iz * session_z_size, r - session_z_size);
-
-                if (session_x_offset, session_z_offset) != (0, 0) {
-                    let p0_crr = self.bots[bot_grid[0][0]].p;
-                    let p0_nxt = P::new(session_x_offset, max_filled_y + 1, session_z_offset);
-                    // TODO: r - 1じゃなくてちゃんとy座標をする
-
-                    eprintln!(
-                        "r={}, session_x_size={}, {}",
-                        r, session_x_size, session_z_size
-                    );
-                    eprintln!("Session: {:?} -> {:?}", p0_crr, p0_nxt);
-
-                    self.move_to_next_session(p0_nxt - p0_crr);
-                }
-
-                self.destroy_session(&bot_grid);
-
-                iz += 1;
-            }
-            ix += 1;
-        }
-
-        self.harmonize();
-        self.fusion();
-        */
     }
 }
 
