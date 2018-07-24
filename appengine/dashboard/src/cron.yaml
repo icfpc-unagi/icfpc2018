@@ -1,4 +1,1 @@
 cron:
-- description: "update_standing"
-  url: /update_standing.php
-  schedule: every 3 minutes
