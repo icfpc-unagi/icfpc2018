@@ -1,0 +1,250 @@
+
+<!-- saved from url=(0062)https://icfpc-dashboard.appspot.com/problem.php?problem_id=191 -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></head><body><header>
+
+<style>
+html, body {
+	position: relative;
+	margin: 0;
+	padding: 0;
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+	font-weight: 200;
+}
+
+table {
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+	font-weight: 300;
+}
+
+header {
+	position: fixed;
+	display: block;
+	width: 100%;
+	line-height: 50px;
+	height: 50px;
+	font-size: 18px;
+	background: #f7fff7;
+	margin: 0px;
+	border-bottom: 1px solid #ddd;
+	font-weight: 200;
+	vertical-align: middle;
+}
+
+header .title {
+	display: inline-block;
+	font-size: 150%;
+	margin-right: 30px;
+}
+
+header .title a {
+	text-decoration: none;
+	color: inherit;
+}
+
+header .title a img {
+	border: none;
+}
+
+.page {
+	padding: 0 10%;
+}
+
+h1, h2, h3, h4, h5 {
+	padding: 0;
+	margin: 1ex 0 0.5ex;
+}
+
+h1 {
+	font-size: 150%;
+	font-weight: 200;
+}
+
+h2 {
+	font-size: 140%;
+	font-weight: 200;
+}
+
+h3 {
+	font-size: 130%;
+	font-weight: 200;
+}
+
+.rank {
+	font-family: "Courier New", Consolas, monospace;
+	font-weight: 200;
+}
+
+.table {
+	width: 100%;
+	margin: 0.5ex;
+	border: 1px solid #ccc;
+	border-collapse: collapse;
+	table-layout: fixed;
+}
+
+.table thead {
+	text-align: center;
+}
+
+.table td {
+	border: 1px solid #ccc;
+	padding: 0.5ex;
+	overflow-x: hidden;
+	white-space: nowrap;
+}
+
+.table tr:nth-child(even), .table thead {
+	background-color: #eee;
+}
+
+.ranking {
+	border-collapse: collapse;
+	table-layout: fixed;
+	width: 100%;
+}
+
+.ranking tr:nth-child(even), .ranking thead {
+	background-color: #eee;
+}
+
+.ranking td {
+	padding: 0.3ex 1ex;
+}
+
+.ranking thead {
+	font-weight: 400;
+}
+
+.monospace {
+	font-family: "Courier New", Consolas, monospace;
+	font-weight: 200;
+}
+
+form { margin: 0; }
+
+.form {
+	border: 1px solid #ccc;
+	border-radius: 10px;
+	padding: 10px;
+	margin: 10px;
+}
+
+.form input {
+	width: 100%;
+	border: 1px solid #ccc;
+	padding: 5px;
+	font-size: 100%;
+	font-weight: 300;
+	margin: 5px;
+}
+
+.form input[type="submit"] {
+	background-color: #0069d9;
+	color: #ffffff;
+	border-radius: 5px;
+	width: inherit;
+	padding: 5px 30px;
+}
+
+.form input:disabled[type="submit"] {
+	background-color: #ffffff;
+	color: #888888;
+	border-radius: 5px;
+	width: inherit;
+	padding: 5px 30px;
+}
+
+.error, .success {
+	margin: 10px 0;
+	padding: 5px 20px;
+	border: 1px solid #888;
+	border-radius: 5px;
+	font-weight: normal;
+}
+
+.error {
+	border-color: #f00;
+	background-color: #fee;
+}
+
+.success {
+	border-color: #080;
+	background-color: #efe;
+}
+
+</style>
+</header>
+
+<header>
+<div class="page">
+<div class="title">
+<a href="https://icfpc-dashboard.appspot.com/"><img src="./problem_files/unagi.png" height="25" width="25"> Unagi ICFPC2018 Standings</a>
+</div>
+
+<a href="https://icfpc-dashboard.appspot.com/">Standings</a>
+- <a href="https://icfpc-dashboard.appspot.com/problems.php">Problems</a>
+- <a href="https://icfpc-dashboard.appspot.com/programs.php">Programs</a>
+
+</div>
+</header>
+<div class="page" style="padding-top: 50px">
+<h2>Problem: FA001 (R=20, dfl=335123860)</h2>
+<div style="margin: 1em; text-align: center">
+<div id="glcanvas_container" style="position: relative; width: 600px; display: inline-block;">
+<canvas id="glcanvas" tabindex="0" style="width:600px;height:400px" width="1200" height="800">
+</canvas><div style="position: absolute; top: 0px; left: 0px; cursor: pointer; opacity: 0.9; z-index: 10000;"><canvas width="160" height="96" style="width: 80px; height: 48px; display: block;"></canvas><canvas width="160" height="96" style="width: 80px; height: 48px; display: none;"></canvas><canvas width="160" height="96" style="width: 80px; height: 48px; display: none;"></canvas></div></div>
+</div>
+
+<script src="./problem_files/three.min.js"></script>
+<script src="./problem_files/Detector.js"></script>
+<script src="./problem_files/stats.min.js"></script>
+<script src="./problem_files/visualizer.js"></script>
+<script>
+var vis;
+
+function render(data) {
+  var R = data[0];
+  vis.setSize(R, R, R);
+  for (var z = 0; z < R; z++) {
+    for (var y = 0; y < R; y++) {
+      for (var x = 0; x < R; x++) {
+        var index = (x * R + y) * R + z;
+        if (data[Math.floor(index / 8) + 1] & (1 << (index % 8))) {
+          vis.fillMatrix(x, y, z, x, y, z);
+        }
+      }
+    }
+  }
+  console.log(data);
+}
+
+(function () {
+  if (! Detector.webgl) {
+    const glcanvasContainer = document.getElementById('glcanvas_container');
+    const glcanvas = document.getElementById('glcanvas');
+    glcanvasContainer.removeChild(glcanvas);
+    var warning = Detector.getWebGLErrorMessage();
+    glcanvasContainer.appendChild(warning);
+  } else {
+    vis = initVisualizer({
+      stats: true, screenshot: false, controls: true, noresize: true});
+    var request = new XMLHttpRequest();
+    request.open("GET", "/problems/FA001_tgt.mdl", true);
+    request.responseType = "blob";
+    request.onload = function() {
+      var reader = new FileReader();
+      reader.onload = function() {
+        render(new Uint8Array(reader.result));
+      };
+      reader.readAsArrayBuffer(request.response);
+    };
+    request.send();
+  }
+})();
+</script>
+<h3>Ranking</h3>
+<table class="ranking"><thead><tr><td style="width:10%">Rank</td><td>Program Name</td><td style="width:20%">Energy</td><td style="width:10%">Score</td></tr></thead><tbody><tr><td>1</td><td style="overflow-x:hidden; white-space: nowrap">pigimarudon</td><td style="text-align:right;" class="monospace">705904</td><td style="text-align:right">4000</td></tr><tr><td>2</td><td style="overflow-x:hidden; white-space: nowrap">unagi-out-20180723-151507</td><td style="text-align:right;" class="monospace">838576</td><td style="text-align:right">3998</td></tr><tr><td>3</td><td style="overflow-x:hidden; white-space: nowrap">wata-008-z</td><td style="text-align:right;" class="monospace">912346</td><td style="text-align:right">3997</td></tr><tr><td>4</td><td style="overflow-x:hidden; white-space: nowrap">wata-007-z</td><td style="text-align:right;" class="monospace">937430</td><td style="text-align:right">3997</td></tr><tr><td>5</td><td style="overflow-x:hidden; white-space: nowrap">wata-007-y</td><td style="text-align:right;" class="monospace">962664</td><td style="text-align:right">3996</td></tr><tr><td>6</td><td style="overflow-x:hidden; white-space: nowrap">wata-008-y</td><td style="text-align:right;" class="monospace">987692</td><td style="text-align:right">3996</td></tr><tr><td>7</td><td style="overflow-x:hidden; white-space: nowrap">wata-004-z</td><td style="text-align:right;" class="monospace">1060684</td><td style="text-align:right">3995</td></tr><tr><td>7</td><td style="overflow-x:hidden; white-space: nowrap">Unagi</td><td style="text-align:right;" class="monospace">1060684</td><td style="text-align:right">3995</td></tr><tr><td>9</td><td style="overflow-x:hidden; white-space: nowrap">wata-006-y</td><td style="text-align:right;" class="monospace">1062610</td><td style="text-align:right">3995</td></tr><tr><td>10</td><td style="overflow-x:hidden; white-space: nowrap">We didn't mean to use Python</td><td style="text-align:right;" class="monospace">1069774</td><td style="text-align:right">3995</td></tr><tr><td>11</td><td style="overflow-x:hidden; white-space: nowrap">wata-006-z</td><td style="text-align:right;" class="monospace">1085528</td><td style="text-align:right">3995</td></tr><tr><td>12</td><td style="overflow-x:hidden; white-space: nowrap">wata-004-y</td><td style="text-align:right;" class="monospace">1087250</td><td style="text-align:right">3995</td></tr><tr><td>13</td><td style="overflow-x:hidden; white-space: nowrap">wata-005-z</td><td style="text-align:right;" class="monospace">1135162</td><td style="text-align:right">3994</td></tr><tr><td>14</td><td style="overflow-x:hidden; white-space: nowrap">wata-005-y</td><td style="text-align:right;" class="monospace">1135564</td><td style="text-align:right">3994</td></tr><tr><td>15</td><td style="overflow-x:hidden; white-space: nowrap">chokudai-014x</td><td style="text-align:right;" class="monospace">1191724</td><td style="text-align:right">3994</td></tr><tr><td>16</td><td style="overflow-x:hidden; white-space: nowrap">wata-006-x</td><td style="text-align:right;" class="monospace">1210326</td><td style="text-align:right">3993</td></tr><tr><td>17</td><td style="overflow-x:hidden; white-space: nowrap">wata-008</td><td style="text-align:right;" class="monospace">1210734</td><td style="text-align:right">3993</td></tr><tr><td>18</td><td style="overflow-x:hidden; white-space: nowrap">chokudai-013x</td><td style="text-align:right;" class="monospace">1216128</td><td style="text-align:right">3993</td></tr><tr><td>19</td><td style="overflow-x:hidden; white-space: nowrap">NERV</td><td style="text-align:right;" class="monospace">1217142</td><td style="text-align:right">3993</td></tr><tr><td>20</td><td style="overflow-x:hidden; white-space: nowrap">wata-005-x</td><td style="text-align:right;" class="monospace">1235448</td><td style="text-align:right">3993</td></tr><tr><td>21</td><td style="overflow-x:hidden; white-space: nowrap">wata-004-x</td><td style="text-align:right;" class="monospace">1235560</td><td style="text-align:right">3993</td></tr><tr><td>22</td><td style="overflow-x:hidden; white-space: nowrap">wata-007-x</td><td style="text-align:right;" class="monospace">1259224</td><td style="text-align:right">3993</td></tr><tr><td>23</td><td style="overflow-x:hidden; white-space: nowrap">perpetuum mobile</td><td style="text-align:right;" class="monospace">1283992</td><td style="text-align:right">3993</td></tr><tr><td>24</td><td style="overflow-x:hidden; white-space: nowrap">wata-002-y</td><td style="text-align:right;" class="monospace">1310170</td><td style="text-align:right">3992</td></tr><tr><td>24</td><td style="overflow-x:hidden; white-space: nowrap">wata-003-y</td><td style="text-align:right;" class="monospace">1310170</td><td style="text-align:right">3992</td></tr><tr><td>24</td><td style="overflow-x:hidden; white-space: nowrap">imos-nbt.txt-20180723-184248</td><td style="text-align:right;" class="monospace">1310170</td><td style="text-align:right">3992</td></tr><tr><td>24</td><td style="overflow-x:hidden; white-space: nowrap">imos-nbt.txt-20180723-184448</td><td style="text-align:right;" class="monospace">1310170</td><td style="text-align:right">3992</td></tr><tr><td>28</td><td style="overflow-x:hidden; white-space: nowrap">Raging Mushrooms</td><td style="text-align:right;" class="monospace">1366166</td><td style="text-align:right">3992</td></tr><tr><td>29</td><td style="overflow-x:hidden; white-space: nowrap">chokudai-012</td><td style="text-align:right;" class="monospace">1381780</td><td style="text-align:right">3991</td></tr><tr><td>30</td><td style="overflow-x:hidden; white-space: nowrap">chokudai-013</td><td style="text-align:right;" class="monospace">1434740</td><td style="text-align:right">3991</td></tr><tr><td>31</td><td style="overflow-x:hidden; white-space: nowrap">wata-002-x</td><td style="text-align:right;" class="monospace">1459144</td><td style="text-align:right">3990</td></tr><tr><td>31</td><td style="overflow-x:hidden; white-space: nowrap">wata-003-x</td><td style="text-align:right;" class="monospace">1459144</td><td style="text-align:right">3990</td></tr><tr><td>33</td><td style="overflow-x:hidden; white-space: nowrap">  chokudai-014</td><td style="text-align:right;" class="monospace">1533702</td><td style="text-align:right">3990</td></tr><tr><td>34</td><td style="overflow-x:hidden; white-space: nowrap">wata-002-z</td><td style="text-align:right;" class="monospace">1534442</td><td style="text-align:right">3990</td></tr><tr><td>34</td><td style="overflow-x:hidden; white-space: nowrap">wata-003-z</td><td style="text-align:right;" class="monospace">1534442</td><td style="text-align:right">3990</td></tr><tr><td>36</td><td style="overflow-x:hidden; white-space: nowrap">manarimo</td><td style="text-align:right;" class="monospace">1633434</td><td style="text-align:right">3988</td></tr><tr><td>37</td><td style="overflow-x:hidden; white-space: nowrap">chokudai-005</td><td style="text-align:right;" class="monospace">1655210</td><td style="text-align:right">3988</td></tr><tr><td>37</td><td style="overflow-x:hidden; white-space: nowrap">chokudai-006</td><td style="text-align:right;" class="monospace">1655210</td><td style="text-align:right">3988</td></tr><tr><td>39</td><td style="overflow-x:hidden; white-space: nowrap">chokudai-007</td><td style="text-align:right;" class="monospace">1683920</td><td style="text-align:right">3988</td></tr><tr><td>39</td><td style="overflow-x:hidden; white-space: nowrap">chokudai-008</td><td style="text-align:right;" class="monospace">1683920</td><td style="text-align:right">3988</td></tr><tr><td>39</td><td style="overflow-x:hidden; white-space: nowrap">chokudai-009</td><td style="text-align:right;" class="monospace">1683920</td><td style="text-align:right">3988</td></tr><tr><td>42</td><td style="overflow-x:hidden; white-space: nowrap">jabber.ru</td><td style="text-align:right;" class="monospace">1697206</td><td style="text-align:right">3988</td></tr><tr><td>43</td><td style="overflow-x:hidden; white-space: nowrap">chokudai-002</td><td style="text-align:right;" class="monospace">1703164</td><td style="text-align:right">3988</td></tr><tr><td>44</td><td style="overflow-x:hidden; white-space: nowrap">chokudai-003</td><td style="text-align:right;" class="monospace">1750872</td><td style="text-align:right">3987</td></tr><tr><td>45</td><td style="overflow-x:hidden; white-space: nowrap">chokudai-009-2</td><td style="text-align:right;" class="monospace">1755092</td><td style="text-align:right">3987</td></tr><tr><td>46</td><td style="overflow-x:hidden; white-space: nowrap">chokudai-004</td><td style="text-align:right;" class="monospace">1852462</td><td style="text-align:right">3986</td></tr><tr><td>47</td><td style="overflow-x:hidden; white-space: nowrap">shinh</td><td style="text-align:right;" class="monospace">1873600</td><td style="text-align:right">3986</td></tr><tr><td>48</td><td style="overflow-x:hidden; white-space: nowrap">solve2</td><td style="text-align:right;" class="monospace">1893766</td><td style="text-align:right">3985</td></tr><tr><td>49</td><td style="overflow-x:hidden; white-space: nowrap">All your energy are belong to us</td><td style="text-align:right;" class="monospace">1951776</td><td style="text-align:right">3985</td></tr><tr><td>50</td><td style="overflow-x:hidden; white-space: nowrap">Frictionless Bananas</td><td style="text-align:right;" class="monospace">2435776</td><td style="text-align:right">3979</td></tr><tr><td>51</td><td style="overflow-x:hidden; white-space: nowrap">chokudai-001</td><td style="text-align:right;" class="monospace">2593214</td><td style="text-align:right">3977</td></tr><tr><td>52</td><td style="overflow-x:hidden; white-space: nowrap">Whippet Bobsled</td><td style="text-align:right;" class="monospace">3253392</td><td style="text-align:right">3969</td></tr><tr><td>53</td><td style="overflow-x:hidden; white-space: nowrap">Lambding Snakes vs. Coding Monkeys</td><td style="text-align:right;" class="monospace">3537448</td><td style="text-align:right">3966</td></tr><tr><td>54</td><td style="overflow-x:hidden; white-space: nowrap">CowDay</td><td style="text-align:right;" class="monospace">3736756</td><td style="text-align:right">3963</td></tr><tr><td>55</td><td style="overflow-x:hidden; white-space: nowrap">The Higher Order of Zeuxis</td><td style="text-align:right;" class="monospace">3766026</td><td style="text-align:right">3963</td></tr><tr><td>56</td><td style="overflow-x:hidden; white-space: nowrap">The Blind Hen</td><td style="text-align:right;" class="monospace">3882130</td><td style="text-align:right">3962</td></tr><tr><td>57</td><td style="overflow-x:hidden; white-space: nowrap">Dev</td><td style="text-align:right;" class="monospace">3922568</td><td style="text-align:right">3961</td></tr><tr><td>58</td><td style="overflow-x:hidden; white-space: nowrap">銀閣寺GOLD</td><td style="text-align:right;" class="monospace">4068298</td><td style="text-align:right">3959</td></tr><tr><td>59</td><td style="overflow-x:hidden; white-space: nowrap">Side Effects May Include...</td><td style="text-align:right;" class="monospace">4543990</td><td style="text-align:right">3954</td></tr><tr><td>60</td><td style="overflow-x:hidden; white-space: nowrap">I would like to serve 5TB of data</td><td style="text-align:right;" class="monospace">4652196</td><td style="text-align:right">3952</td></tr><tr><td>61</td><td style="overflow-x:hidden; white-space: nowrap">301</td><td style="text-align:right;" class="monospace">4664852</td><td style="text-align:right">3952</td></tr><tr><td>62</td><td style="overflow-x:hidden; white-space: nowrap">NAKANO ward</td><td style="text-align:right;" class="monospace">4851972</td><td style="text-align:right">3950</td></tr><tr><td>63</td><td style="overflow-x:hidden; white-space: nowrap">Sigmoid Freud</td><td style="text-align:right;" class="monospace">5763522</td><td style="text-align:right">3939</td></tr><tr><td>64</td><td style="overflow-x:hidden; white-space: nowrap">Sunspear</td><td style="text-align:right;" class="monospace">6582070</td><td style="text-align:right">3929</td></tr><tr><td>65</td><td style="overflow-x:hidden; white-space: nowrap">A Storm of Minds</td><td style="text-align:right;" class="monospace">7734742</td><td style="text-align:right">3915</td></tr><tr><td>66</td><td style="overflow-x:hidden; white-space: nowrap">codingteam</td><td style="text-align:right;" class="monospace">7792036</td><td style="text-align:right">3915</td></tr><tr><td>67</td><td style="overflow-x:hidden; white-space: nowrap">kontur.ru</td><td style="text-align:right;" class="monospace">8057344</td><td style="text-align:right">3912</td></tr><tr><td>68</td><td style="overflow-x:hidden; white-space: nowrap">Piggybank Software</td><td style="text-align:right;" class="monospace">8704906</td><td style="text-align:right">3904</td></tr><tr><td>69</td><td style="overflow-x:hidden; white-space: nowrap">forM_</td><td style="text-align:right;" class="monospace">9631648</td><td style="text-align:right">3893</td></tr><tr><td>70</td><td style="overflow-x:hidden; white-space: nowrap">lambda-llama</td><td style="text-align:right;" class="monospace">10013280</td><td style="text-align:right">3888</td></tr><tr><td>71</td><td style="overflow-x:hidden; white-space: nowrap">Forth Major</td><td style="text-align:right;" class="monospace">10295964</td><td style="text-align:right">3885</td></tr><tr><td>72</td><td style="overflow-x:hidden; white-space: nowrap">sanma</td><td style="text-align:right;" class="monospace">10957428</td><td style="text-align:right">3877</td></tr><tr><td>73</td><td style="overflow-x:hidden; white-space: nowrap">code-o-matic</td><td style="text-align:right;" class="monospace">11806260</td><td style="text-align:right">3867</td></tr><tr><td>74</td><td style="overflow-x:hidden; white-space: nowrap">Play Race for the Galaxy on your phone $6.99 - Roll coming soon!!!</td><td style="text-align:right;" class="monospace">11847124</td><td style="text-align:right">3866</td></tr><tr><td>75</td><td style="overflow-x:hidden; white-space: nowrap">HP LaserJet 4200</td><td style="text-align:right;" class="monospace">12000064</td><td style="text-align:right">3864</td></tr><tr><td>76</td><td style="overflow-x:hidden; white-space: nowrap">Olympia</td><td style="text-align:right;" class="monospace">12363884</td><td style="text-align:right">3860</td></tr><tr><td>77</td><td style="overflow-x:hidden; white-space: nowrap">yowa</td><td style="text-align:right;" class="monospace">13869490</td><td style="text-align:right">3842</td></tr><tr><td>78</td><td style="overflow-x:hidden; white-space: nowrap">Skobochka</td><td style="text-align:right;" class="monospace">14839148</td><td style="text-align:right">3830</td></tr><tr><td>79</td><td style="overflow-x:hidden; white-space: nowrap">Line Graph</td><td style="text-align:right;" class="monospace">15314414</td><td style="text-align:right">3825</td></tr><tr><td>80</td><td style="overflow-x:hidden; white-space: nowrap">Man Chest Hair United</td><td style="text-align:right;" class="monospace">15595800</td><td style="text-align:right">3821</td></tr><tr><td>81</td><td style="overflow-x:hidden; white-space: nowrap">sjoerd_visscher</td><td style="text-align:right;" class="monospace">17109684</td><td style="text-align:right">3803</td></tr><tr><td>82</td><td style="overflow-x:hidden; white-space: nowrap">trup16</td><td style="text-align:right;" class="monospace">17278324</td><td style="text-align:right">3801</td></tr><tr><td>83</td><td style="overflow-x:hidden; white-space: nowrap">Bot the Nanobot in the Race to the Bottom</td><td style="text-align:right;" class="monospace">18647112</td><td style="text-align:right">3785</td></tr><tr><td>84</td><td style="overflow-x:hidden; white-space: nowrap">uni</td><td style="text-align:right;" class="monospace">18807648</td><td style="text-align:right">3783</td></tr><tr><td>85</td><td style="overflow-x:hidden; white-space: nowrap">LILiK</td><td style="text-align:right;" class="monospace">18814660</td><td style="text-align:right">3783</td></tr><tr><td>86</td><td style="overflow-x:hidden; white-space: nowrap">O Caml, My Caml</td><td style="text-align:right;" class="monospace">19247544</td><td style="text-align:right">3778</td></tr><tr><td>87</td><td style="overflow-x:hidden; white-space: nowrap">uguu.org</td><td style="text-align:right;" class="monospace">20592488</td><td style="text-align:right">3762</td></tr><tr><td>88</td><td style="overflow-x:hidden; white-space: nowrap">Vanilla Bears (kontur.ru)</td><td style="text-align:right;" class="monospace">23335612</td><td style="text-align:right">3729</td></tr><tr><td>89</td><td style="overflow-x:hidden; white-space: nowrap">DiamondPrincess</td><td style="text-align:right;" class="monospace">23523988</td><td style="text-align:right">3727</td></tr><tr><td>90</td><td style="overflow-x:hidden; white-space: nowrap">Meh</td><td style="text-align:right;" class="monospace">24076320</td><td style="text-align:right">3720</td></tr><tr><td>91</td><td style="overflow-x:hidden; white-space: nowrap">andrii</td><td style="text-align:right;" class="monospace">25060116</td><td style="text-align:right">3708</td></tr><tr><td>92</td><td style="overflow-x:hidden; white-space: nowrap">negainoido</td><td style="text-align:right;" class="monospace">25060960</td><td style="text-align:right">3708</td></tr><tr><td>93</td><td style="overflow-x:hidden; white-space: nowrap">cw</td><td style="text-align:right;" class="monospace">25895096</td><td style="text-align:right">3698</td></tr><tr><td>94</td><td style="overflow-x:hidden; white-space: nowrap">ShagraevSquad</td><td style="text-align:right;" class="monospace">26285656</td><td style="text-align:right">3694</td></tr><tr><td>95</td><td style="overflow-x:hidden; white-space: nowrap">Serokell | TBD</td><td style="text-align:right;" class="monospace">26479114</td><td style="text-align:right">3691</td></tr><tr><td>96</td><td style="overflow-x:hidden; white-space: nowrap"></td><td style="text-align:right;" class="monospace">26639816</td><td style="text-align:right">3689</td></tr><tr><td>97</td><td style="overflow-x:hidden; white-space: nowrap">THIRTEEN</td><td style="text-align:right;" class="monospace">26731798</td><td style="text-align:right">3688</td></tr><tr><td>98</td><td style="overflow-x:hidden; white-space: nowrap">kstm.org</td><td style="text-align:right;" class="monospace">27840624</td><td style="text-align:right">3675</td></tr><tr><td>99</td><td style="overflow-x:hidden; white-space: nowrap">blueSculptor</td><td style="text-align:right;" class="monospace">29620008</td><td style="text-align:right">3654</td></tr><tr><td>100</td><td style="overflow-x:hidden; white-space: nowrap">LuciferaseBugs</td><td style="text-align:right;" class="monospace">30340092</td><td style="text-align:right">3645</td></tr><tr><td>101</td><td style="overflow-x:hidden; white-space: nowrap">Parse Error</td><td style="text-align:right;" class="monospace">30676168</td><td style="text-align:right">3641</td></tr><tr><td>102</td><td style="overflow-x:hidden; white-space: nowrap">Canivsar</td><td style="text-align:right;" class="monospace">31267432</td><td style="text-align:right">3634</td></tr><tr><td>103</td><td style="overflow-x:hidden; white-space: nowrap">Lambda sound</td><td style="text-align:right;" class="monospace">31964296</td><td style="text-align:right">3626</td></tr><tr><td>104</td><td style="overflow-x:hidden; white-space: nowrap">Sampou</td><td style="text-align:right;" class="monospace">32068938</td><td style="text-align:right">3624</td></tr><tr><td>105</td><td style="overflow-x:hidden; white-space: nowrap">The2Funny3Robots</td><td style="text-align:right;" class="monospace">32357848</td><td style="text-align:right">3621</td></tr><tr><td>106</td><td style="overflow-x:hidden; white-space: nowrap">IQ1</td><td style="text-align:right;" class="monospace">33492124</td><td style="text-align:right">3607</td></tr><tr><td>107</td><td style="overflow-x:hidden; white-space: nowrap">Rebuttals (kontur.ru)</td><td style="text-align:right;" class="monospace">34271380</td><td style="text-align:right">3598</td></tr><tr><td>108</td><td style="overflow-x:hidden; white-space: nowrap">The Cat is #1!!</td><td style="text-align:right;" class="monospace">36052820</td><td style="text-align:right">3577</td></tr><tr><td>109</td><td style="overflow-x:hidden; white-space: nowrap">This is an albatrocity!</td><td style="text-align:right;" class="monospace">38118680</td><td style="text-align:right">3552</td></tr><tr><td>110</td><td style="overflow-x:hidden; white-space: nowrap">Bottle kids!</td><td style="text-align:right;" class="monospace">38142700</td><td style="text-align:right">3552</td></tr><tr><td>111</td><td style="overflow-x:hidden; white-space: nowrap">DeepNano</td><td style="text-align:right;" class="monospace">38238596</td><td style="text-align:right">3551</td></tr><tr><td>112</td><td style="overflow-x:hidden; white-space: nowrap">JODY HiGHROLLERS</td><td style="text-align:right;" class="monospace">38440308</td><td style="text-align:right">3548</td></tr><tr><td>113</td><td style="overflow-x:hidden; white-space: nowrap">chirimenjako</td><td style="text-align:right;" class="monospace">39669136</td><td style="text-align:right">3533</td></tr><tr><td>114</td><td style="overflow-x:hidden; white-space: nowrap">Junkfood</td><td style="text-align:right;" class="monospace">39827660</td><td style="text-align:right">3532</td></tr><tr><td>115</td><td style="overflow-x:hidden; white-space: nowrap">WinterMUTE</td><td style="text-align:right;" class="monospace">61155540</td><td style="text-align:right">3276</td></tr><tr><td>116</td><td style="overflow-x:hidden; white-space: nowrap">ichyo</td><td style="text-align:right;" class="monospace">65045220</td><td style="text-align:right">3230</td></tr><tr><td>117</td><td style="overflow-x:hidden; white-space: nowrap">naze</td><td style="text-align:right;" class="monospace">65710956</td><td style="text-align:right">3222</td></tr><tr><td>118</td><td style="overflow-x:hidden; white-space: nowrap">Lamdalicious</td><td style="text-align:right;" class="monospace">86527818</td><td style="text-align:right">2973</td></tr><tr><td>119</td><td style="overflow-x:hidden; white-space: nowrap">udfew</td><td style="text-align:right;" class="monospace">98204064</td><td style="text-align:right">2833</td></tr><tr><td>120</td><td style="overflow-x:hidden; white-space: nowrap">yarunee</td><td style="text-align:right;" class="monospace">100037270</td><td style="text-align:right">2811</td></tr><tr><td>121</td><td style="overflow-x:hidden; white-space: nowrap">Goto11</td><td style="text-align:right;" class="monospace">109509808</td><td style="text-align:right">2698</td></tr><tr><td>122</td><td style="overflow-x:hidden; white-space: nowrap">Enoch Root</td><td style="text-align:right;" class="monospace">135203420</td><td style="text-align:right">2391</td></tr><tr><td>123</td><td style="overflow-x:hidden; white-space: nowrap">KludgeFactory</td><td style="text-align:right;" class="monospace">152157064</td><td style="text-align:right">2188</td></tr><tr><td>124</td><td style="overflow-x:hidden; white-space: nowrap">taxidriver</td><td style="text-align:right;" class="monospace">159093844</td><td style="text-align:right">2105</td></tr><tr><td>125</td><td style="overflow-x:hidden; white-space: nowrap">NCPLUG</td><td style="text-align:right;" class="monospace">205350680</td><td style="text-align:right">1552</td></tr><tr><td>126</td><td style="overflow-x:hidden; white-space: nowrap">getting_better_Samara</td><td style="text-align:right;" class="monospace">218089400</td><td style="text-align:right">1399</td></tr><tr><td>127</td><td style="overflow-x:hidden; white-space: nowrap">Dis Functional</td><td style="text-align:right;" class="monospace">223060344</td><td style="text-align:right">1340</td></tr><tr><td>128</td><td style="overflow-x:hidden; white-space: nowrap">R22b</td><td style="text-align:right;" class="monospace">237966680</td><td style="text-align:right">1162</td></tr><tr><td>129</td><td style="overflow-x:hidden; white-space: nowrap">cvnm</td><td style="text-align:right;" class="monospace">248620160</td><td style="text-align:right">1034</td></tr><tr><td>130</td><td style="overflow-x:hidden; white-space: nowrap">Leonardone @ NEETSDKASU</td><td style="text-align:right;" class="monospace">272958680</td><td style="text-align:right">743</td></tr><tr><td>131</td><td style="overflow-x:hidden; white-space: nowrap">ITF</td><td style="text-align:right;" class="monospace">282798928</td><td style="text-align:right">625</td></tr><tr><td>132</td><td style="overflow-x:hidden; white-space: nowrap">Sample</td><td style="text-align:right;" class="monospace">335123860</td><td style="text-align:right">0</td></tr><tr><td>132</td><td style="overflow-x:hidden; white-space: nowrap">gRingene</td><td style="text-align:right;" class="monospace">335123860</td><td style="text-align:right">0</td></tr><tr><td>132</td><td style="overflow-x:hidden; white-space: nowrap">Turing Machinists</td><td style="text-align:right;" class="monospace">335123860</td><td style="text-align:right">0</td></tr><tr><td>132</td><td style="overflow-x:hidden; white-space: nowrap">moka</td><td style="text-align:right;" class="monospace">335123860</td><td style="text-align:right">0</td></tr><tr><td>132</td><td style="overflow-x:hidden; white-space: nowrap">Croco</td><td style="text-align:right;" class="monospace">335123860</td><td style="text-align:right">0</td></tr></tbody></table>	
+</div>
+
+
+</body></html>
